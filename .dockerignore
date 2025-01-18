@@ -1,0 +1,46 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Node modules and build artifacts
+/node_modules
+/public/hot
+/public/storage
+/public/build
+
+# Development files
+.env
+.env.*
+!.env.example
+.phpunit.result.cache
+docker-compose.override.yml
+
+# IDE and editor files
+/.idea
+/.vscode
+/.fleet
+/.DS_Store
+Thumbs.db
+
+# Dependencies and packages
+/vendor
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Storage and cache
+/storage/*.key
+.phpunit.result.cache
+.php_cs.cache
+
+# Testing
+/coverage
+.phpunit.cache
+
+# Docker specific
+Dockerfile
+docker-compose.yml
+/docker
