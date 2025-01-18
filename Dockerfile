@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     zip \
-    unzip
+    unzip \
+    netcat-traditional
 
 # Install Node.js 20.x and npm
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
@@ -26,23 +27,27 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-# Copy existing application directory
+# Copy composer files first
+COPY composer.json composer.lock ./
+
+# Install Composer dependencies
+RUN composer install --no-scripts --no-autoloader
+
+# Copy the rest of the application code
 COPY . .
 
-# Install project dependencies
-RUN composer install
+# Generate optimized autoloader
+RUN composer dump-autoload --optimize
+
+# Install and build frontend assets
 RUN npm install
 
-# Build without TypeScript checks for now
-RUN NODE_ENV=production node_modules/.bin/vite build
+# Set permissions
+RUN chown -R www-data:www-data /var/www
+RUN chmod -R 755 /var/www/storage /var/www/bootstrap/cache
 
 # Copy and set permissions for the entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
-
-# Set the entrypoint script
 ENTRYPOINT ["docker-entrypoint.sh"]

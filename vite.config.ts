@@ -11,13 +11,14 @@ export default defineConfig({
         react(),
     ],
     server: {
-        host: '0.0.0.0',
+        host: true, // Needed for Docker
         hmr: {
             host: 'localhost'
         },
         watch: {
             usePolling: true
         },
-        port: 5173
+        port: 5173,
+        strictPort: true,
     },
 });
