@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 RUN apt-get install -y nodejs
 
+# Install pnpm globally
+RUN npm install -g pnpm
+
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -39,8 +42,8 @@ COPY . .
 # Generate optimized autoloader
 RUN composer dump-autoload --optimize
 
-# Install and build frontend assets
-RUN npm install
+# Install and build frontend assets using pnpm
+RUN pnpm install
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www
