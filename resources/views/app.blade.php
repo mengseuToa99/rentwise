@@ -12,3 +12,7 @@
     <div id="app"></div> <!-- React app will be mounted here -->
 </body>
 </html>
+
+<script>
+    window.__WS_TOKEN__ = '{{ csrf_token() }}';
+</script>

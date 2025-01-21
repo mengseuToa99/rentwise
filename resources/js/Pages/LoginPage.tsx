@@ -43,64 +43,60 @@ const LoginPage: React.FC = () => {
     };
 
     return (
-        <div className="flex ml-[500px]">
-            {" "}
-            {/* Add space between the form and image */}
-            {/* Login Form */}
-            <div className="flex justify-center items-center h-screen bg-gray-100 flex-1">
-                <div className="bg-white p-8 rounded-lg shadow-md w-96">
-                    <h1 className="text-2xl font-bold mb-6 text-center">
-                        Login
-                    </h1>
-                    <Form {...form}>
-                        <form
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className="space-y-6"
-                        >
-                            <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Email</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Enter your email"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="password"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Password</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="password"
-                                                placeholder="Enter your password"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="submit" className="w-full">
-                                Login
-                            </Button>
-                        </form>
-                    </Form>
+        <div className="flex h-screen w-full">
+            <div className="w-[73%]">
+                <div className="flex justify-center items-center h-screen bg-gray-100 flex-1">
+                    <div className="bg-white p-8 rounded-lg shadow-md w-96">
+                        <h1 className="text-2xl font-bold mb-6 text-center">
+                            Login
+                        </h1>
+                        <Form {...form}>
+                            <form
+                                onSubmit={form.handleSubmit(onSubmit)}
+                                className="space-y-6"
+                            >
+                                <FormField
+                                    control={form.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Email</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Enter your email"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Password</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="password"
+                                                    placeholder="Enter your password"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <Button type="submit" className="w-full">
+                                    Login
+                                </Button>
+                            </form>
+                        </Form>
+                    </div>
                 </div>
             </div>
-
-            <div className=" w-[300px] "></div>
-            {/* Image on the Right */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 w-[27%]">
                 <img
                     src="/image/1.jpg"
                     alt="Logo"
