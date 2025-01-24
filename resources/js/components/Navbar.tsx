@@ -3,6 +3,8 @@ import { LayoutDashboard, Wrench, MessageCircle, FileText, Settings, LogOut, Use
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ModeToggle } from './ModeToggle';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
 
 const Navbar = () => {
     return (
@@ -11,9 +13,11 @@ const Navbar = () => {
             <div className="p-6">
                 <div className="flex items-center space-x-3">
                     {/* Profile Icon */}
-                    <div className="p-2 bg-black rounded-full">
-                        <User className="h-6 w-6 text-white" />
-                    </div>
+                    <Avatar>
+                        <AvatarImage src="https://github.com/shadcn.png" />
+                        <AvatarFallback>CN</AvatarFallback>
+                    </Avatar>
+
                     {/* Profile Name */}
                     <div>
                         <h1 className="text-lg font-semibold">John Doe</h1>
