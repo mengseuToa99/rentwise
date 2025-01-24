@@ -1,12 +1,8 @@
-import React from 'react';
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
-import Navbar from "./Navbar";
+import { AppSidebar } from "@/components/app-sidebar";
 
-interface RootLayoutProps {
-    children: React.ReactNode;
-}
-
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function Layout({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider
             attribute="class"
@@ -14,14 +10,13 @@ export default function RootLayout({ children }: RootLayoutProps) {
             enableSystem
             disableTransitionOnChange
         >
-            <div className="flex min-h-screen bg-background">
-                {/* Navbar */}
-                <Navbar />
-                {/* Main content */}
-                <main className="ml-64 flex-1 p-6 overflow-y-auto">
+            <SidebarProvider>
+                <AppSidebar />
+                <main>
+                    <SidebarTrigger />
                     {children}
                 </main>
-            </div>
+            </SidebarProvider>
         </ThemeProvider>
     );
 }
