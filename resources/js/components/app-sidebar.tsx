@@ -18,7 +18,7 @@ export function AppSidebar() {
     const items = [
         {
             title: "Property Management",
-            url: "/",
+            url: "property",
             icon: LayoutDashboard,
         },
         {

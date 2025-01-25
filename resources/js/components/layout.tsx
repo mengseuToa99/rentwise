@@ -11,11 +11,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             disableTransitionOnChange
         >
             <SidebarProvider>
-                <AppSidebar />
-                <main>
-                    <SidebarTrigger />
-                    {children}
-                </main>
+                <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <main className="flex-1 p-6">
+                        <SidebarTrigger />
+                        {children}
+                    </main>
+                </div>
             </SidebarProvider>
         </ThemeProvider>
     );
