@@ -175,7 +175,7 @@ const AddProperty: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center w-full space-x-2 mb-6">
+                            <div className="flex items-center w-full space-x-2 mb-6 sticky top-0  border-black dark:border-white z-10">
                                 <Button type="button" onClick={() => append({ unitPhoto: "", unitNumber: "", unitDescrption: "", meterReading: "", unitPrice: "" })}>
                                     Add Unit
                                 </Button>
