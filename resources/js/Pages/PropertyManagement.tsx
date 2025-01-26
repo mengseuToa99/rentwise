@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 
 const PropertyManagement: React.FC = () => {
     
-    const item = "/property/addProperty";
+    const url = "addProperty"; // Ensure the route is correct
 
     return (
         <RootLayout>
@@ -20,12 +20,12 @@ const PropertyManagement: React.FC = () => {
                         placeholder="Search properties..."
                         className="max-w-sm"
                     />
-                      <a href={item} className="flex items-center">
-                    <Button variant="default">Add New Property</Button>
+                    <a href={`${window.location.pathname}/${url}`} className="flex items-center">
+                        <Button variant="default">Add New Property</Button>
                     </a>
                 </div>
 
-                {/*this is where i show the property and unit */}
+                {/* This is where I show the property and unit */}
             </div>
         </RootLayout>
     );
