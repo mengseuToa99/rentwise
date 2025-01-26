@@ -4,9 +4,10 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import RootLayout from "@/components/layout";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const PropertyManagement: React.FC = () => {
+    
+    const item = "/property/addProperty";
 
     return (
         <RootLayout>
@@ -19,7 +20,9 @@ const PropertyManagement: React.FC = () => {
                         placeholder="Search properties..."
                         className="max-w-sm"
                     />
+                      <a href={item} className="flex items-center">
                     <Button variant="default">Add New Property</Button>
+                    </a>
                 </div>
 
                 {/*this is where i show the property and unit */}

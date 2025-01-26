@@ -5,6 +5,7 @@ import LoginPage from './Pages/LoginPage';
 import RegisterPage from './Pages/RegisterPage';
 import Communication from './Pages/Communication';
 import PropertyManagement from './Pages/PropertyManagement';
+import AddProperty from './Pages/AddProperty';
 
 
 const AppRouter: React.FC = () => {
@@ -16,6 +17,7 @@ const AppRouter: React.FC = () => {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/property" element={<PropertyManagement />} />
+                <Route path="/property/addProperty" element={<AddProperty />} />
 
                 {/* <Route path="*" element={<NotFoundPage />} /> */}
             </Routes>

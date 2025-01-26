@@ -32,8 +32,8 @@ const Navbar = () => {
             {/* Navigation Links */}
             <ul className="flex-1 p-4 space-y-2">
                 <li>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         className="w-full justify-start border-gray-400 hover:bg-gray-100 hover:border-gray-500"
                     >
                         <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -41,8 +41,8 @@ const Navbar = () => {
                     </Button>
                 </li>
                 <li>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         className="w-full justify-start border-gray-400 hover:bg-gray-100 hover:border-gray-500"
                     >
                         <Wrench className="mr-2 h-4 w-4" />
@@ -50,8 +50,8 @@ const Navbar = () => {
                     </Button>
                 </li>
                 <li>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         className="w-full justify-start border-gray-400 hover:bg-gray-100 hover:border-gray-500"
                     >
                         <MessageCircle className="mr-2 h-4 w-4" />
@@ -59,8 +59,8 @@ const Navbar = () => {
                     </Button>
                 </li>
                 <li>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         className="w-full justify-start border-gray-400 hover:bg-gray-100 hover:border-gray-500"
                     >
                         <FileText className="mr-2 h-4 w-4" />
@@ -68,8 +68,8 @@ const Navbar = () => {
                     </Button>
                 </li>
                 <li>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         className="w-full justify-start border-gray-400 hover:bg-gray-100 hover:border-gray-500"
                     >
                         <Settings className="mr-2 h-4 w-4" />
@@ -82,8 +82,8 @@ const Navbar = () => {
 
             {/* Logout Button */}
             <div className="p-4">
-                <Button 
-                    variant="ghost" 
+                <Button
+                    variant="ghost"
                     className="w-full justify-start hover:bg-red-50 hover:text-red-600"
                 >
                     <LogOut className="mr-2 h-4 w-4" />
