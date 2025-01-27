@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 2
 import { useFieldArray, useFormContext } from "react-hook-form";
+import { Camera, Trash } from "lucide-react";
 
 interface UnitFormProps {
 	index: number;
