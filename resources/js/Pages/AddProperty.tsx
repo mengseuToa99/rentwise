@@ -84,7 +84,7 @@ const AddProperty: React.FC = () => {
             <div className="p-8">
                 <h1 className="text-3xl font-bold mb-6">Add Property</h1>
 
-                <div className="border p-8 rounded-lg shadow-md">
+                <div className="border p-8 rounded-lg ">
                     <FormProvider {...form}> {/* Wrap the form with FormProvider */}
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                             <div className="flex">
@@ -105,7 +105,7 @@ const AddProperty: React.FC = () => {
                                                     />
                                                     <label
                                                         htmlFor="photo-input"
-                                                        className="cursor-pointer flex flex-col items-center justify-center w-32 h-32 bg-gray-100 border border-dashed rounded-lg shadow-md hover:bg-gray-200"
+                                                        className="cursor-pointer flex flex-col items-center justify-center w-32 h-32 bg-gray-100 border border-dashed rounded-lg hover:bg-gray-200"
                                                     >
                                                         {preview ? (
                                                             <img

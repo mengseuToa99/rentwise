@@ -11,7 +11,7 @@ import {
 	FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Camera, Trash } from "lucide-react";
+2
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 interface UnitFormProps {
@@ -37,7 +37,7 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
 	};
 
 	return (
-		<div className="p-4 border rounded-lg shadow-md flex space-x-4">
+		<div className="p-4 border rounded-lg flex space-x-4">
 			{/* File Input for Unit Photo */}
 			<FormField
 				control={control}
@@ -60,7 +60,7 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
 								{/* Preview or Upload Area */}
 								<label
 									htmlFor={`unit-photo-input-${index}`}
-									className="cursor-pointer flex flex-col items-center justify-center w-32 h-32 bg-gray-100 border border-dashed rounded-lg shadow-md hover:bg-gray-200"
+									className="cursor-pointer flex flex-col items-center justify-center w-32 h-32 bg-gray-100 border border-dashed rounded-lg hover:bg-gray-200"
 								>
 									{preview ? (
 										<img

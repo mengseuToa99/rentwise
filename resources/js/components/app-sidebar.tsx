@@ -45,10 +45,10 @@ export function AppSidebar() {
 
     return (
         <Sidebar>
-            <SidebarContent>
+            <SidebarContent className="flex flex-col h-full">
                 {/* Profile Section */}
-                <SidebarGroup>
-                    <div className="p-6">
+
+                    <div className="p-4">
                         <div className="flex items-center space-x-3">
                             {/* Profile Icon */}
                             <div className="p-2 bg-black rounded-full">
@@ -59,44 +59,47 @@ export function AppSidebar() {
                                 <h1 className="text-lg font-semibold">John Doe</h1>
                                 <p className="text-sm text-gray-500">Admin</p>
                             </div>
-                            <ModeToggle />
+                            
                         </div>
                     </div>
-                </SidebarGroup>
+
 
                 <SidebarSeparator />
 
                 {/* Navigation Links */}
-                <SidebarGroup>
-                    <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {items.map((item) => (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton asChild>
-                                        <a href={item.url} className="flex items-center">
-                                            <item.icon className="mr-2 h-4 w-4" />
-                                            <span>{item.title}</span>
-                                        </a>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
+                <div className="flex-grow">
+                    <SidebarGroup>
+                        <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu className="space-y-2">
+                                {items.map((item) => (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton asChild className="p-5">
+                                            <a href={item.url} className="flex items-center">
+                                                <item.icon className="mr-2 h-4 w-4" />
+                                                <span>{item.title}</span>
+                                            </a>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                </div>
 
                 <SidebarSeparator />
 
                 {/* Logout Button */}
                 <SidebarGroup>
-                    <div className="p-4">
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-start hover:bg-red-50 hover:text-red-600"
+                    <div className="flex justify-between">
+                        <SidebarMenuButton
+         
+                            className="w-auto hover:bg-red-50 hover:text-red-600 "
                         >
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Logout
-                        </Button>
+                            <LogOut />
+
+                        </SidebarMenuButton>
+                        <ModeToggle />
                     </div>
                 </SidebarGroup>
             </SidebarContent>
