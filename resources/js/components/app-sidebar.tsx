@@ -38,7 +38,7 @@ export function AppSidebar() {
         },
         {
             title: "Setting",
-            url: "#",
+            url: "/setting",
             icon: Settings,
         },
     ];
@@ -48,20 +48,22 @@ export function AppSidebar() {
             <SidebarContent className="flex flex-col h-full">
                 {/* Profile Section */}
 
-                    <div className="p-4">
-                        <div className="flex items-center space-x-3">
-                            {/* Profile Icon */}
+                <div className="p-4">
+                    <div className="flex items-center space-x-3">
+                        {/* Profile Icon */}
+                        <a href="/profile">
                             <div className="p-2 bg-black rounded-full">
                                 <User className="h-6 w-6 text-white" />
                             </div>
-                            {/* Profile Name */}
-                            <div>
-                                <h1 className="text-lg font-semibold">John Doe</h1>
-                                <p className="text-sm text-gray-500">Admin</p>
-                            </div>
-                            
+                        </a>
+                        {/* Profile Name */}
+                        <div>
+                            <h1 className="text-lg font-semibold">John Doe</h1>
+                            <p className="text-sm text-gray-500">Admin</p>
                         </div>
+
                     </div>
+                </div>
 
 
                 <SidebarSeparator />
@@ -92,13 +94,13 @@ export function AppSidebar() {
                 {/* Logout Button */}
                 <SidebarGroup>
                     <div className="flex justify-between">
-                        <SidebarMenuButton
-         
-                            className="w-auto hover:bg-red-50 hover:text-red-600 "
-                        >
-                            <LogOut />
+                        <a href="/login">
+                            <SidebarMenuButton className="w-auto hover:bg-red-50 hover:text-red-600 ">
 
-                        </SidebarMenuButton>
+                                <LogOut />
+
+                            </SidebarMenuButton>
+                        </a>
                         <ModeToggle />
                     </div>
                 </SidebarGroup>
