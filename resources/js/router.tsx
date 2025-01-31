@@ -6,10 +6,7 @@ import RegisterPage from './Pages/RegisterPage';
 import Communication from './Pages/Communication';
 import PropertyManagement from './Pages/PropertyManagement';
 import AddProperty from './Pages/AddProperty';
-import Profile from './Pages/Profile';
-import Setting from './Pages/Setting';
 import AccountPage from './Pages/AddAccount';
-
 
 const AppRouter: React.FC = () => {
     return (
@@ -22,8 +19,8 @@ const AppRouter: React.FC = () => {
                 <Route path="/add-user" element={<AccountPage />} />
                 <Route path="/property" element={<PropertyManagement />} />
                 <Route path="/property/addProperty" element={<AddProperty />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/setting" element={<Setting />} />
+                <Route path="/add-user" element={<AccountPage />} />
+
                 {/* <Route path="*" element={<NotFoundPage />} /> */}
             </Routes>
         </Router>

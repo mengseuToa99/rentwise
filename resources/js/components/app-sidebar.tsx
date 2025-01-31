@@ -12,6 +12,7 @@ import {
 import { LayoutDashboard, Wrench, MessageCircle, FileText, Settings, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "./ModeToggle";
+import LanguageSwitcher from "./LanguageSwitcher"
 
 export function AppSidebar() {
     // Menu items
@@ -20,6 +21,11 @@ export function AppSidebar() {
             title: "Property Management",
             url: "/property",
             icon: LayoutDashboard,
+        },
+        {
+            title: "User Account",
+            url: "/add-user",
+            icon: User,
         },
         {
             title: "Maintenance",

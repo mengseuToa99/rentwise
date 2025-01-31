@@ -9,6 +9,17 @@ import { userService } from "@/services/api/users";
 import type { User } from "@/services/api/types/user";
 import { toast } from "sonner";
 
+// /resources/js/components/data-table/users-table.tsx
+// "use client";
+
+// import { useState, useEffect } from "react";
+// import type { ColumnDef } from "@tanstack/react-table";
+// import { DataTable } from "./data-table";
+// import { DataTableColumnHeader } from "./column-header";
+// import { Badge } from "@/components/ui/badge";
+// import { userService } from "@/services/api";  // Updated import
+// import type { User } from "@/types/user";
+// import { toast } from "sonner";
 
 export default function UsersTable() {
     const [data, setData] = useState<User[]>([]);
