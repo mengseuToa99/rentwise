@@ -8,6 +8,7 @@ import PropertyManagement from './Pages/PropertyManagement';
 import AddProperty from './Pages/AddProperty';
 import Profile from './Pages/Profile';
 import Setting from './Pages/Setting';
+import AccountPage from './Pages/AddAccount';
 
 
 const AppRouter: React.FC = () => {
@@ -18,6 +19,7 @@ const AppRouter: React.FC = () => {
                 <Route path="/communication" element={<Communication />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/add-user" element={<AccountPage />} />
                 <Route path="/property" element={<PropertyManagement />} />
                 <Route path="/property/addProperty" element={<AddProperty />} />
                 <Route path="/profile" element={<Profile />} />
