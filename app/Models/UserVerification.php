@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserVerification extends Model
 {
-    protected $table = 'user_verification';
     protected $primaryKey = 'user_id';
     protected $fillable = ['email_verified', 'phone_verified', 'verification_token', 'token_expiry'];
 

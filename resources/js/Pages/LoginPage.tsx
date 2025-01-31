@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+"use client"; // Mark the component as a Client Component (if using Next.js)
+
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -13,9 +14,8 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { userService } from "@/services/api";
-import { toast } from "sonner";
 
+// Define the form schema
 const loginFormSchema = z.object({
     email: z.string().email({
         message: "Please enter a valid email address.",
@@ -25,12 +25,10 @@ const loginFormSchema = z.object({
     }),
 });
 
+// Infer the type of the form values
 type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 const LoginPage: React.FC = () => {
-    const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState(false);
-
     const form = useForm<LoginFormValues>({
         resolver: zodResolver(loginFormSchema),
         defaultValues: {
@@ -39,36 +37,9 @@ const LoginPage: React.FC = () => {
         },
     });
 
-    const onSubmit = async (values: LoginFormValues) => {
-        setIsLoading(true);
-        try {
-            const response = await userService.userLogin({
-                email: values.email,
-                password: values.password,
-            });
-
-            // Store the token in localStorage
-            localStorage.setItem("token", response.data.token);
-            
-            // Store user data if needed
-            localStorage.setItem("user", JSON.stringify(response.data.user));
-            
-            // Show success message
-            toast("Login successful!", {
-                description: "Welcome back!",
-            });
-
-            // Redirect to dashboard or home page
-            navigate("/");
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.message || "Login failed";
-            toast(errorMessage, {
-                description: "Please check your credentials and try again.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsLoading(false);
-        }
+    const onSubmit = (values: LoginFormValues) => {
+        // Handle form submission
+        console.log("Form values:", values);
     };
 
     return (
@@ -93,10 +64,7 @@ const LoginPage: React.FC = () => {
                                             <FormControl>
                                                 <Input
                                                     placeholder="Enter your email"
-                                                    type="email"
-                                                    autoComplete="email"
                                                     {...field}
-                                                    disabled={isLoading}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -113,21 +81,15 @@ const LoginPage: React.FC = () => {
                                                 <Input
                                                     type="password"
                                                     placeholder="Enter your password"
-                                                    autoComplete="current-password"
                                                     {...field}
-                                                    disabled={isLoading}
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                                <Button 
-                                    type="submit" 
-                                    className="w-full"
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? "Logging in..." : "Login"}
+                                <Button type="submit" className="w-full">
+                                    Login
                                 </Button>
                             </form>
                         </Form>
