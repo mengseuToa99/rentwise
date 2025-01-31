@@ -1,4 +1,5 @@
 import React from "react";
+import './i18n/config.js';
 
 const App = () => {
     return (
