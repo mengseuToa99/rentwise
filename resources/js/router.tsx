@@ -7,12 +7,14 @@ import Communication from './Pages/Communication';
 import PropertyManagement from './Pages/PropertyManagement';
 import AddProperty from './Pages/AddProperty';
 import AccountPage from './Pages/AddAccount';
+import Profile from './Pages/Profile';
 
 const AppRouter: React.FC = () => {
     return (
         <Router>
             <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route path="/communication" element={<Communication />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
