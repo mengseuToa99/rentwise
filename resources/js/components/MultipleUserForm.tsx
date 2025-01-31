@@ -15,7 +15,7 @@ import {
     CardHeader,
     CardTitle,
     CardContent,
-} from "@/components/card";
+} from "@/components/ui/card";
 
 interface MultipleUserFormProps {
     fields: Array<{
