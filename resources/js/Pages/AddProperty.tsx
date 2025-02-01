@@ -17,7 +17,19 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Camera, ChevronDown, ChevronUp } from "lucide-react";
-import UnitForm from "../components/UnitForm"; // Import the UnitForm component
+import UnitForm from "../components/UnitForm";
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselPrevious,
+    CarouselNext,
+} from "@/components/ui/carousel";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"; // Import Popover components
 
 // Define the form schema with Zod
 const formSchema = z.object({
@@ -29,11 +41,15 @@ const formSchema = z.object({
     address: z.string().min(1, { message: "Address is required." }),
     units: z.array(
         z.object({
-            unitPhoto: z.string().min(1, { message: "Unit photo is required." }),
+            unitPhoto: z
+                .instanceof(File)
+                .optional()
+                .refine((file) => file instanceof File || file === undefined, { message: "Please upload a valid file." }),
             unitNumber: z.string().min(1, { message: "Unit Number is required." }),
-            unitDescrption: z.string().min(1, { message: "Unit Descrption is required." }),
-            meterReading: z.string().min(1, { message: "meterReading is required." }),
+            unitDescrption: z.string().min(1, { message: "Unit Description is required." }),
+            meterReading: z.string().min(1, { message: "Meter Reading is required." }),
             unitPrice: z.string().min(1, { message: "Unit Price is required." }),
+            floor: z.number().min(1, { message: "Floor is required." }), // Add floor field
         })
     ),
 });
@@ -42,6 +58,8 @@ const AddProperty: React.FC = () => {
     const [fileName, setFileName] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [isUnitsVisible, setIsUnitsVisible] = useState(true);
+    const [floors, setFloors] = useState<number>(0);
+    const [roomsPerFloor, setRoomsPerFloor] = useState<number[]>([]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -50,13 +68,7 @@ const AddProperty: React.FC = () => {
             propertyName: "",
             description: "",
             address: "",
-            units: [{
-                unitPhoto: undefined,
-                unitNumber: "",
-                unitDescrption: "",
-                meterReading: "",
-                unitPrice: ""
-            }],
+            units: [],
         },
     });
 
@@ -79,20 +91,47 @@ const AddProperty: React.FC = () => {
         }
     };
 
+    // Handle adding units based on floors and rooms
+    const handleAddUnits = (floors: number, roomsPerFloor: number[]) => {
+        for (let floor = 1; floor <= floors; floor++) {
+            for (let room = 1; room <= roomsPerFloor[floor - 1]; room++) {
+                append({
+                    unitPhoto: undefined,
+                    unitNumber: `Room ${room}`,
+                    unitDescrption: "",
+                    meterReading: "",
+                    unitPrice: "",
+                    floor: floor, // Add floor number
+                });
+            }
+        }
+    };
+
+    // Group units by floor
+    const groupedUnits = fields.reduce((acc, unit) => {
+        const floor = unit.floor;
+        if (!acc[floor]) {
+            acc[floor] = [];
+        }
+        acc[floor].push(unit);
+        return acc;
+    }, {} as Record<number, typeof fields>);
+
     return (
         <RootLayout>
-            <div className="p-8">
+            <div className="p-4 sm:p-8">
                 <h1 className="text-3xl font-bold mb-6">Add Property</h1>
 
-                <div className="border p-8 rounded-lg ">
-                    <FormProvider {...form}> {/* Wrap the form with FormProvider */}
+                <div className="border p-4 sm:p-8 rounded-lg">
+                    <FormProvider {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                            <div className="flex">
+                            {/* Property Photo, Name, Description, and Address fields */}
+                            <div className="flex flex-col sm:flex-row gap-4">
                                 <FormField
                                     control={form.control}
                                     name="propertyPhoto"
                                     render={() => (
-                                        <FormItem className="w-1/3">
+                                        <FormItem className="w-full sm:w-1/3">
                                             <FormLabel>Upload Photo Of Your Property</FormLabel>
                                             <FormControl>
                                                 <div className="flex flex-col items-start space-y-3">
@@ -117,7 +156,7 @@ const AddProperty: React.FC = () => {
                                                             <Camera size={32} className="text-gray-500" />
                                                         )}
                                                     </label>
-                                                    <span className=" text-sm text-gray-600">
+                                                    <span className="text-sm text-gray-600">
                                                         {fileName || "No file selected"}
                                                     </span>
                                                 </div>
@@ -130,7 +169,7 @@ const AddProperty: React.FC = () => {
                                     )}
                                 />
                                 <div className="flex flex-col w-full space-y-4">
-                                    <div className="flex flex-row space-x-4">
+                                    <div className="flex flex-col sm:flex-row gap-4">
                                         <FormField
                                             control={form.control}
                                             name="propertyName"
@@ -175,10 +214,51 @@ const AddProperty: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center w-full space-x-2 mb-6 sticky top-0  border-black dark:border-white z-10">
-                                <Button type="button" onClick={() => append({ unitPhoto: "", unitNumber: "", unitDescrption: "", meterReading: "", unitPrice: "" })}>
-                                    Add Unit
-                                </Button>
+                            {/* Units Section */}
+                            <div className="flex items-center w-full space-x-2 mb-6 sticky top-0 border-black dark:border-white z-10">
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button type="button">
+                                            Add Unit
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80">
+                                        <div className="space-y-4">
+                                            <label className="block text-sm font-medium">
+                                                Number of Floors
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                value={floors}
+                                                onChange={(e) => setFloors(Number(e.target.value))}
+                                            />
+                                            {Array.from({ length: floors }, (_, floorIndex) => (
+                                                <div key={floorIndex} className="space-y-2">
+                                                    <label className="block text-sm font-medium">
+                                                        Rooms on Floor {floorIndex + 1}
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        min="1"
+                                                        value={roomsPerFloor[floorIndex] || 0}
+                                                        onChange={(e) => {
+                                                            const newRoomsPerFloor = [...roomsPerFloor];
+                                                            newRoomsPerFloor[floorIndex] = Number(e.target.value);
+                                                            setRoomsPerFloor(newRoomsPerFloor);
+                                                        }}
+                                                    />
+                                                </div>
+                                            ))}
+                                            <Button
+                                                type="button"
+                                                onClick={() => handleAddUnits(floors, roomsPerFloor)}
+                                            >
+                                                Generate Units
+                                            </Button>
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
                                 <hr className="flex-grow border-t-4 border-black dark:border-white" />
                                 <div
                                     className="cursor-pointer"
@@ -190,15 +270,49 @@ const AddProperty: React.FC = () => {
 
                             {/* Collapsible section for units */}
                             {isUnitsVisible && (
-                                <div className="space-y-4">
-                                    {fields.map((item, index) => (
-                                        <UnitForm
-                                            key={item.id}
-                                            index={index}
-                                            remove={remove}
-                                        />
-                                    ))}
-                                </div>
+                                <>
+                                    {/* Grid layout for larger screens */}
+                                    <div className="hidden md:grid grid-cols-1 gap-4">
+                                        {Object.entries(groupedUnits).map(([floor, units]) => (
+                                            <div key={floor} className="space-y-4">
+                                                <h3 className="text-xl font-bold">Floor {floor}</h3>
+                                                {units.map((unit, index) => (
+                                                    <div key={unit.id} className="w-full">
+                                                        <UnitForm
+                                                            index={fields.findIndex((f) => f.id === unit.id)}
+                                                            remove={remove}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Carousel layout for smaller screens */}
+                                    <div className="md:hidden w-full">
+                                        <Carousel className="w-full">
+                                            <CarouselContent className="w-full">
+                                                {Object.entries(groupedUnits).map(([floor, units]) => (
+                                                    <CarouselItem key={floor} className="w-full">
+                                                        <div className="space-y-4">
+                                                            <h3 className="text-xl font-bold">Floor {floor}</h3>
+                                                            {units.map((unit, index) => (
+                                                                <div key={unit.id} className="w-full">
+                                                                    <UnitForm
+                                                                        index={fields.findIndex((f) => f.id === unit.id)}
+                                                                        remove={remove}
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </CarouselItem>
+                                                ))}
+                                            </CarouselContent>
+                                            <CarouselPrevious />
+                                            <CarouselNext />
+                                        </Carousel>
+                                    </div>
+                                </>
                             )}
 
                             <div className="flex justify-end mt-6">
@@ -208,7 +322,7 @@ const AddProperty: React.FC = () => {
                     </FormProvider>
                 </div>
             </div>
-        </RootLayout >
+        </RootLayout>
     );
 };
 

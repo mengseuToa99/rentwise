@@ -39,7 +39,7 @@ export function AppSidebar() {
         },
         {
             title: "Report",
-            url: "#",
+            url: "/report",
             icon: FileText,
         },
         {

@@ -4,18 +4,20 @@ import React, { useState } from "react";
 import RootLayout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
+import { Switch } from "@/components/ui/switch";
 
 const Setting: React.FC = () => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
-    const handleNotificationsChange = () => {
-        setNotificationsEnabled(!notificationsEnabled);
+    // Handle switch change for notifications
+    const handleNotificationsChange = (checked: boolean) => {
+        setNotificationsEnabled(checked);
     };
 
-    const handleDarkModeChange = () => {
-        setDarkModeEnabled(!darkModeEnabled);
+    // Handle switch change for dark mode
+    const handleDarkModeChange = (checked: boolean) => {
+        setDarkModeEnabled(checked);
     };
 
     return (
@@ -27,12 +29,18 @@ const Setting: React.FC = () => {
                     <div className="flex flex-col space-y-4">
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-medium">Enable Notifications</label>
-                            
+                            <Switch 
+                                checked={notificationsEnabled} 
+                                onCheckedChange={handleNotificationsChange} 
+                            />
                         </div>
 
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-medium">Enable Dark Mode</label>
-                      
+                            <Switch 
+                                checked={darkModeEnabled} 
+                                onCheckedChange={handleDarkModeChange} 
+                            />
                         </div>
 
                         <div className="flex flex-col space-y-2">
