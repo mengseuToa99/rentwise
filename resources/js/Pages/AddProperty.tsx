@@ -26,10 +26,12 @@ import {
     CarouselNext,
 } from "@/components/ui/carousel";
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"; // Import Popover components
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"; // Use Dialog for a centered modal
 
 // Define the form schema with Zod
 const formSchema = z.object({
@@ -42,9 +44,8 @@ const formSchema = z.object({
     units: z.array(
         z.object({
             unitPhoto: z
-                .instanceof(File)
-                .optional()
-                .refine((file) => file instanceof File || file === undefined, { message: "Please upload a valid file." }),
+                .any()
+                .refine((file) => file instanceof File, { message: "Please upload a valid file." }),
             unitNumber: z.string().min(1, { message: "Unit Number is required." }),
             unitDescrption: z.string().min(1, { message: "Unit Description is required." }),
             meterReading: z.string().min(1, { message: "Meter Reading is required." }),
@@ -60,6 +61,7 @@ const AddProperty: React.FC = () => {
     const [isUnitsVisible, setIsUnitsVisible] = useState(true);
     const [floors, setFloors] = useState<number>(0);
     const [roomsPerFloor, setRoomsPerFloor] = useState<number[]>([]);
+    const [isDialogOpen, setIsDialogOpen] = useState(false); // State to control the dialog
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -105,6 +107,7 @@ const AddProperty: React.FC = () => {
                 });
             }
         }
+        setIsDialogOpen(false); // Close the dialog after generating units
     };
 
     // Group units by floor
@@ -215,14 +218,17 @@ const AddProperty: React.FC = () => {
                             </div>
 
                             {/* Units Section */}
-                            <div className="flex items-center w-full space-x-2 mb-6 sticky top-0 border-black dark:border-white z-10">
-                                <Popover>
-                                    <PopoverTrigger asChild>
+                            <div className="flex items-center w-full space-x-2 mb-6 sticky top-0 border-black dark:border-white z-10 max-w-full">
+                                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                    <DialogTrigger asChild>
                                         <Button type="button">
                                             Add Unit
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80">
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl p-4">
+                                        <DialogHeader>
+                                            <DialogTitle>Add Units</DialogTitle>
+                                        </DialogHeader>
                                         <div className="space-y-4">
                                             <label className="block text-sm font-medium">
                                                 Number of Floors
@@ -257,8 +263,8 @@ const AddProperty: React.FC = () => {
                                                 Generate Units
                                             </Button>
                                         </div>
-                                    </PopoverContent>
-                                </Popover>
+                                    </DialogContent>
+                                </Dialog>
                                 <hr className="flex-grow border-t-4 border-black dark:border-white" />
                                 <div
                                     className="cursor-pointer"
@@ -272,7 +278,7 @@ const AddProperty: React.FC = () => {
                             {isUnitsVisible && (
                                 <>
                                     {/* Grid layout for larger screens */}
-                                    <div className="hidden md:grid grid-cols-1 gap-4">
+                                    <div className="hidden md:grid grid-cols-1 gap-4 max-w-full">
                                         {Object.entries(groupedUnits).map(([floor, units]) => (
                                             <div key={floor} className="space-y-4">
                                                 <h3 className="text-xl font-bold">Floor {floor}</h3>
