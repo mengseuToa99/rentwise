@@ -10,6 +10,7 @@ import AccountPage from './Pages/AddAccount';
 import Profile from './Pages/Profile';
 import Setting from './Pages/Setting';
 import Report from './Pages/Report';
+import Maintenance from './Pages/Maintenance';
 
 const AppRouter: React.FC = () => {
     return (
@@ -26,6 +27,7 @@ const AppRouter: React.FC = () => {
                 <Route path="/add-user" element={<AccountPage />} />
                 <Route path="/setting" element={<Setting />} />
                 <Route path="/report" element={<Report />} />
+                <Route path="/maintenance" element={<Maintenance />} />
                 {/* <Route path="*" element={<NotFoundPage />} /> */}
             </Routes>
         </Router>

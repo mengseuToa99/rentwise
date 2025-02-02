@@ -29,7 +29,7 @@ export function AppSidebar() {
         },
         {
             title: "Maintenance",
-            url: "#",
+            url: "/maintenance",
             icon: Wrench,
         },
         {
