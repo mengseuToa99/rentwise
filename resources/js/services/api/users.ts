@@ -15,7 +15,7 @@ export const userService = {
 
     getProfile: async (userData: Partial<User>) => {
         try {
-            const response = await api.get('/rentwise/profile', userData);
+            const response = await api.get('/rentwise/profile');
             return response.data;
         } catch (error) {
             throw error;

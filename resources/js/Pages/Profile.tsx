@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import RootLayout from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -5,15 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Camera } from "lucide-react";
 import { userService } from "@/services/api/users";
 
+interface UserData {
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone_number: string;
+    profile_img: File | null;
+}
+
 const Profile: React.FC = () => {
     const [fileName, setFileName] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
-    const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
+    const [userData, setUserData] = useState<UserData>({
+        username: "",
         email: "",
-        phoneNumber: "",
-        bio: "",
+        first_name: "",
+        last_name: "",
+        phone_number: "",
+        profile_img: null
     });
 
     useEffect(() => {
@@ -28,7 +40,7 @@ const Profile: React.FC = () => {
                         first_name: user.first_name,
                         last_name: user.last_name,
                         phone_number: user.phone_number,
-                        profile_img: user.profile_img
+                        profile_img: null // Reset file input
                     });
                     
                     // Set preview if profile_img exists
@@ -44,12 +56,11 @@ const Profile: React.FC = () => {
         fetchProfile();
     }, []);
 
-    const handleFileChange = (e) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             setFileName(file.name);
             setPreview(URL.createObjectURL(file));
-            // Add file to userData
             setUserData(prev => ({
                 ...prev,
                 profile_img: file
@@ -57,7 +68,7 @@ const Profile: React.FC = () => {
         }
     };
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setUserData(prev => ({
             ...prev,
@@ -65,35 +76,24 @@ const Profile: React.FC = () => {
         }));
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
         try {
-            // Create FormData to handle file upload
             const formData = new FormData();
             
             // Append all user data to FormData
-            Object.keys(userData).forEach(key => {
-                if (userData[key] !== null) {
-                    formData.append(key, userData[key]);
+            Object.entries(userData).forEach(([key, value]) => {
+                if (value !== null) {
+                    formData.append(key, value);
                 }
             });
 
-            await userService.updateUser(userData.id, formData);
+            await userService.updateUser(formData);
             // Add success notification here
         } catch (error) {
             console.error("Failed to update profile:", error);
             // Add error notification here
         }
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Submit form data here
-        console.log(formData);
     };
 
     return (
@@ -130,61 +130,67 @@ const Profile: React.FC = () => {
                             </span>
                         </div>
 
-                        <div className="w-fit space-y-4">
-                            <div className="flex space-x-4">
-                                <div className="flex flex-col w-1/2 space-y-2">
+                        <div className="w-full max-w-2xl space-y-4">
+                            <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
+                                <div className="flex flex-col w-full md:w-1/2 space-y-2">
                                     <label className="text-sm font-medium">First Name</label>
-                                    <Input
-                                        name="firstName"
-                                        value={formData.firstName}
+                                    <Input 
+                                        name="first_name"
+                                        value={userData.first_name}
                                         onChange={handleInputChange}
                                         placeholder="Enter your first name"
                                     />
                                 </div>
-                                <div className="flex flex-col w-1/2 space-y-2">
+                                <div className="flex flex-col w-full md:w-1/2 space-y-2">
                                     <label className="text-sm font-medium">Last Name</label>
-                                    <Input
-                                        name="lastName"
-                                        value={formData.lastName}
+                                    <Input 
+                                        name="last_name"
+                                        value={userData.last_name}
                                         onChange={handleInputChange}
                                         placeholder="Enter your last name"
                                     />
                                 </div>
                             </div>
+                            
+                            <div className="flex flex-col space-y-2">
+                                <label className="text-sm font-medium">Username</label>
+                                <Input 
+                                    name="username"
+                                    value={userData.username}
+                                    onChange={handleInputChange}
+                                    placeholder="Enter your username"
+                                />
+                            </div>
 
                             <div className="flex flex-col space-y-2">
                                 <label className="text-sm font-medium">Email</label>
-                                <Input
+                                <Input 
                                     name="email"
                                     type="email"
-                                    value={formData.email}
+                                    value={userData.email}
                                     onChange={handleInputChange}
                                     placeholder="Enter your email"
                                 />
                             </div>
+
                             <div className="flex flex-col space-y-2">
                                 <label className="text-sm font-medium">Phone Number</label>
-                                <Input
-                                    name="phoneNumber"
-                                    value={formData.phoneNumber}
+                                <Input 
+                                    name="phone_number"
+                                    value={userData.phone_number}
                                     onChange={handleInputChange}
                                     placeholder="Enter your phone number"
                                 />
                             </div>
-                            <div className="flex flex-col space-y-2">
-                                <label className="text-sm font-medium">Bio</label>
-                                <Input
-                                    name="bio"
-                                    value={formData.bio}
-                                    onChange={handleInputChange}
-                                    placeholder="Enter a short bio"
-                                />
-                            </div>
                         </div>
 
-                        <Button variant="default" className="mt-6" type="submit">
+                        {/* <Button 
+                            variant="default" 
+                            className="mt-6"
+                            type="submit"
+                        >
                             Save Changes
-                        </Button>
+                        </Button> */}
                     </form>
                 </div>
             </div>
