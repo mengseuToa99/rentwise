@@ -31,26 +31,28 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "@/components/ui/dialog"; // Use Dialog for a centered modal
+} from "@/components/ui/dialog";
 
 // Define the form schema with Zod
 const formSchema = z.object({
     propertyPhoto: z
-        .any()
-        .refine((file) => file instanceof File, { message: "Please upload a valid file." }),
+        .instanceof(File, { message: "Please upload a valid file." })
+        .refine((file) => file.size > 0, { message: "File cannot be empty." }),
     propertyName: z.string().min(1, { message: "Property name is required." }),
     description: z.string().min(1, { message: "Description is required." }),
     address: z.string().min(1, { message: "Address is required." }),
     units: z.array(
         z.object({
             unitPhoto: z
-                .any()
-                .refine((file) => file instanceof File, { message: "Please upload a valid file." }),
+                .instanceof(File, { message: "Please upload a valid file." })
+                .refine((file) => file.size > 0, { message: "File cannot be empty." }),
             unitNumber: z.string().min(1, { message: "Unit Number is required." }),
             unitDescrption: z.string().min(1, { message: "Unit Description is required." }),
-            meterReading: z.string().min(1, { message: "Meter Reading is required." }),
+            electricityReading: z.string().min(1, { message: "Electricity Reading is required." }),
+            waterReading: z.string().min(1, { message: "Water Reading is required." }),
+            roomDueDate: z.date().optional(), // Add roomDueDate to the schema
             unitPrice: z.string().min(1, { message: "Unit Price is required." }),
-            floor: z.number().min(1, { message: "Floor is required." }), // Add floor field
+            floor: z.number().min(1, { message: "Floor is required." }),
         })
     ),
 });
@@ -61,7 +63,7 @@ const AddProperty: React.FC = () => {
     const [isUnitsVisible, setIsUnitsVisible] = useState(true);
     const [floors, setFloors] = useState<number>(0);
     const [roomsPerFloor, setRoomsPerFloor] = useState<number[]>([]);
-    const [isDialogOpen, setIsDialogOpen] = useState(false); // State to control the dialog
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -101,13 +103,15 @@ const AddProperty: React.FC = () => {
                     unitPhoto: undefined,
                     unitNumber: `Room ${room}`,
                     unitDescrption: "",
-                    meterReading: "",
+                    electricityReading: "",
+                    waterReading: "",
+                    roomDueDate: undefined,
                     unitPrice: "",
-                    floor: floor, // Add floor number
+                    floor: floor,
                 });
             }
         }
-        setIsDialogOpen(false); // Close the dialog after generating units
+        setIsDialogOpen(false);
     };
 
     // Group units by floor
@@ -221,9 +225,7 @@ const AddProperty: React.FC = () => {
                             <div className="flex items-center w-full space-x-2 mb-6 sticky top-0 border-black dark:border-white z-10 max-w-full">
                                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button type="button">
-                                            Add Unit
-                                        </Button>
+                                        <Button type="button">Add Unit</Button>
                                     </DialogTrigger>
                                     <DialogContent className="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl p-4">
                                         <DialogHeader>

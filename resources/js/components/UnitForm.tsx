@@ -10,7 +10,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useFormContext } from "react-hook-form";
-import { Camera, Trash } from "lucide-react";
+import { Camera, Trash, Calendar as CalendarIcon } from "lucide-react"; // Import CalendarIcon
+import { Calendar } from "@/components/ui/calendar";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface UnitFormProps {
     index: number;
@@ -20,6 +27,7 @@ interface UnitFormProps {
 const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
     const [fileName, setFileName] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
+    const [date, setDate] = useState<Date | undefined>(undefined); // Define date state
 
     const { control, setValue } = useFormContext(); // Use the form context from parent
 
@@ -33,6 +41,11 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
             setPreview(URL.createObjectURL(file));
             setValue(`units[${index}].unitPhoto`, file); // Update form state
         }
+    };
+
+    const handleDateChange = (selectedDate: Date | undefined) => {
+        setDate(selectedDate);
+        setValue(`units[${index}].roomDueDate`, selectedDate); // Update form state
     };
 
     return (
@@ -114,20 +127,70 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
                     </div>
 
                     {/* Meter Reading Field */}
-                    <FormField
-                        control={control}
-                        name={`units[${index}].meterReading`}
-                        render={({ field }) => (
-                            <FormItem className="flex-1">
-                                <FormLabel>Meter Reading</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Unit Meter Reading" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <FormField
+                            control={control}
+                            name={`units[${index}].electricityReading`}
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Electricity Reading</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Unit Electricity Reading" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
+                        <FormField
+                            control={control}
+                            name={`units[${index}].waterReading`}
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Water Reading</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Unit Water Reading" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={control}
+                            name={`units[${index}].roomDueDate`}
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Room Due Date</FormLabel>
+                                    <FormControl>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "w-full justify-start text-left font-normal",
+                                                        !date && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {date ? date.toDateString() : <span>Pick a date</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={date}
+                                                    onSelect={handleDateChange}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                     {/* Unit Price Field */}
                     <FormField
                         control={control}
