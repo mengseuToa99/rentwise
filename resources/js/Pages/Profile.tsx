@@ -1,10 +1,9 @@
-"use client";
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import RootLayout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Camera } from "lucide-react";
+import { userService } from "@/services/api/users";
 
 const Profile: React.FC = () => {
     const [fileName, setFileName] = useState<string | null>(null);
@@ -17,11 +16,72 @@ const Profile: React.FC = () => {
         bio: "",
     });
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await userService.getProfile({});
+                if (response.status === "success") {
+                    const { user } = response.data;
+                    setUserData({
+                        username: user.username,
+                        email: user.email,
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                        phone_number: user.phone_number,
+                        profile_img: user.profile_img
+                    });
+                    
+                    // Set preview if profile_img exists
+                    if (user.profile_img) {
+                        setPreview(user.profile_img);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch profile:", error);
+            }
+        };
+
+        fetchProfile();
+    }, []);
+
+    const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (file) {
             setFileName(file.name);
             setPreview(URL.createObjectURL(file));
+            // Add file to userData
+            setUserData(prev => ({
+                ...prev,
+                profile_img: file
+            }));
+        }
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setUserData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async () => {
+        try {
+            // Create FormData to handle file upload
+            const formData = new FormData();
+            
+            // Append all user data to FormData
+            Object.keys(userData).forEach(key => {
+                if (userData[key] !== null) {
+                    formData.append(key, userData[key]);
+                }
+            });
+
+            await userService.updateUser(userData.id, formData);
+            // Add success notification here
+        } catch (error) {
+            console.error("Failed to update profile:", error);
+            // Add error notification here
         }
     };
 

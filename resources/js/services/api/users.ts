@@ -13,6 +13,15 @@ export const userService = {
         }
     },
 
+    getProfile: async (userData: Partial<User>) => {
+        try {
+            const response = await api.get('/rentwise/profile', userData);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     createSingleUser: async (userData: Partial<User>) => {
         try {
             const response = await api.post('/rentwise/create-user', userData);
