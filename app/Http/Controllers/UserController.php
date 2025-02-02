@@ -78,7 +78,7 @@ class UserController extends Controller
             'id_card_picture' => 'nullable|string',
             'first_name' => 'required|string',
             'last_name' => 'required|string',
-            'role' => 'required|in:tenant,landlord,admin', // Ensure only valid roles
+            'role' => 'required|in:renter,landlord,admin', // Updated valid roles
         ]);
     
         try {
@@ -97,8 +97,20 @@ class UserController extends Controller
                 'status' => 'active',
             ]);
     
-            // Get role ID (should already exist from seeding)
-            $role = Role::where('role_name', $validated['role'])->firstOrFail();
+            // Add debug logging
+            \Log::info('Looking for role:', ['role_name' => $validated['role']]);
+            
+            // Get role ID and add error handling
+            $role = Role::where('role_name', $validated['role'])->first();
+            
+            if (!$role) {
+                DB::rollBack();
+                \Log::error('Role not found:', ['role_name' => $validated['role']]);
+                return response()->json([
+                    'error' => 'Role not found',
+                    'available_roles' => Role::pluck('role_name')
+                ], 400);
+            }
     
             // Assign role using sync without detaching
             $user->roles()->syncWithoutDetaching([$role->role_id]);
@@ -110,13 +122,18 @@ class UserController extends Controller
                 'user' => $user->load('roles')
             ], 201);
     
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Invalid role specified'], 400);
-            
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'User creation failed: ' . $e->getMessage()], 500);
+            \Log::error('User creation failed:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'User creation failed',
+                'message' => $e->getMessage(),
+                'available_roles' => Role::pluck('role_name')
+            ], 500);
         }
     }
     /**
