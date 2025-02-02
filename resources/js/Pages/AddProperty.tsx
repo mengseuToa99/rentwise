@@ -48,10 +48,11 @@ const formSchema = z.object({
                 .refine((file) => file.size > 0, { message: "File cannot be empty." }),
             unitNumber: z.string().min(1, { message: "Unit Number is required." }),
             unitDescrption: z.string().min(1, { message: "Unit Description is required." }),
+            roomType: z.string().min(1, { message: "Room Type is required." }),
+            unitPrice: z.string().min(1, { message: "Unit Price is required." }),
             electricityReading: z.string().min(1, { message: "Electricity Reading is required." }),
             waterReading: z.string().min(1, { message: "Water Reading is required." }),
-            roomDueDate: z.date().optional(), // Add roomDueDate to the schema
-            unitPrice: z.string().min(1, { message: "Unit Price is required." }),
+            roomDueDate: z.date({ required_error: "Room Due Date is required." }), // Make roomDueDate required
             floor: z.number().min(1, { message: "Floor is required." }),
         })
     ),
@@ -103,10 +104,11 @@ const AddProperty: React.FC = () => {
                     unitPhoto: undefined,
                     unitNumber: `Room ${room}`,
                     unitDescrption: "",
+                    roomType: "",
+                    unitPrice: "",
                     electricityReading: "",
                     waterReading: "",
-                    roomDueDate: undefined,
-                    unitPrice: "",
+                    roomDueDate: new Date(), // Set a default date
                     floor: floor,
                 });
             }

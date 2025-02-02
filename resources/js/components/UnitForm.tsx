@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
     FormField,
@@ -10,13 +10,20 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useFormContext } from "react-hook-form";
-import { Camera, Trash, Calendar as CalendarIcon } from "lucide-react"; // Import CalendarIcon
+import { Camera, Trash, Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface UnitFormProps {
@@ -27,9 +34,9 @@ interface UnitFormProps {
 const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
     const [fileName, setFileName] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
-    const [date, setDate] = useState<Date | undefined>(undefined); // Define date state
+    const [date, setDate] = useState<Date | undefined>(undefined);
 
-    const { control, setValue } = useFormContext(); // Use the form context from parent
+    const { control, setValue, watch } = useFormContext();
 
     const handleUnitFileChange = (
         e: React.ChangeEvent<HTMLInputElement>,
@@ -39,14 +46,19 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
         if (file) {
             setFileName(file.name);
             setPreview(URL.createObjectURL(file));
-            setValue(`units[${index}].unitPhoto`, file); // Update form state
+            setValue(`units[${index}].unitPhoto`, file);
         }
     };
 
     const handleDateChange = (selectedDate: Date | undefined) => {
         setDate(selectedDate);
-        setValue(`units[${index}].roomDueDate`, selectedDate); // Update form state
+        setValue(`units[${index}].roomDueDate`, selectedDate);
     };
+
+    // Ensure the date is set in the form state when the component mounts
+    useEffect(() => {
+        setValue(`units[${index}].roomDueDate`, date);
+    }, [date, index, setValue]);
 
     return (
         <div className="p-4 border rounded-lg w-full">
@@ -93,9 +105,10 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
                         </FormItem>
                     )}
                 />
+
                 <div className="flex flex-col w-full space-y-4">
+                    {/* First Row - Unit Details */}
                     <div className="flex flex-col sm:flex-row gap-4">
-                        {/* Unit Number Field */}
                         <FormField
                             control={control}
                             name={`units[${index}].unitNumber`}
@@ -110,7 +123,6 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
                             )}
                         />
 
-                        {/* Unit Description Field */}
                         <FormField
                             control={control}
                             name={`units[${index}].unitDescrption`}
@@ -126,7 +138,51 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
                         />
                     </div>
 
-                    {/* Meter Reading Field */}
+                    {/* Second Row - Room Type & Price */}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <FormField
+                            control={control}
+                            name={`units[${index}].roomType`}
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Room Type</FormLabel>
+                                    <FormControl>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select room type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="single">Single</SelectItem>
+                                                <SelectItem value="double">Double</SelectItem>
+                                                <SelectItem value="suite">Suite</SelectItem>
+                                                <SelectItem value="other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={control}
+                            name={`units[${index}].unitPrice`}
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Unit Price</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Unit Price" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
+                    {/* Third Row - Utilities & Due Date */}
                     <div className="flex flex-col sm:flex-row gap-4">
                         <FormField
                             control={control}
@@ -135,7 +191,7 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
                                 <FormItem className="flex-1">
                                     <FormLabel>Electricity Reading</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Unit Electricity Reading" {...field} />
+                                        <Input placeholder="Electricity Reading" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -149,7 +205,7 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
                                 <FormItem className="flex-1">
                                     <FormLabel>Water Reading</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Unit Water Reading" {...field} />
+                                        <Input placeholder="Water Reading" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -191,20 +247,6 @@ const UnitForm: React.FC<UnitFormProps> = ({ index, remove }) => {
                             )}
                         />
                     </div>
-                    {/* Unit Price Field */}
-                    <FormField
-                        control={control}
-                        name={`units[${index}].unitPrice`}
-                        render={({ field }) => (
-                            <FormItem className="flex-1">
-                                <FormLabel>Unit Price</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Unit Price" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
                 </div>
 
                 {/* Remove Unit Button */}
