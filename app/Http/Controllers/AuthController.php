@@ -11,58 +11,64 @@ use Illuminate\Support\Facades\Hash;
 class AuthController extends Controller
 {
 
-    public function updateProfile(Request $request)
+    public function updateProfileById(Request $request, $id)
     {
         try {
             // Get the authenticated user
-            $user = Auth::user();
-
-            if (!$user) {
+            $authUser = Auth::user();
+    
+            // Fetch the target user by ID using the User model
+            $targetUser = User::findOrFail($id);
+    
+            // Authorization: Allow only admins or the user themselves to update
+            if (!$authUser->is_admin && $authUser->user_id != $targetUser->user_id) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'User not authenticated'
-                ], 401);
+                    'message' => 'Unauthorized: You do not have permission to update this profile'
+                ], 403);
             }
-
-            // Validate the request with optional fields
+    
+            // Validate the request
             $validatedData = $request->validate([
-                'username' => 'sometimes|string|max:255|unique:user_details,username,' . $user->user_id . ',user_id',
-                'email' => 'sometimes|email|max:255|unique:user_details,email,' . $user->user_id . ',user_id',
+                'username' => 'sometimes|string|max:255|unique:users,username,' . $targetUser->user_id . ',user_id',
+                'email' => 'sometimes|email|max:255|unique:users,email,' . $targetUser->user_id . ',user_id',
+                'phone_number' => 'sometimes|string|max:20',
                 'first_name' => 'sometimes|string|max:255',
                 'last_name' => 'sometimes|string|max:255',
                 'password' => 'sometimes|string|min:8|confirmed',
             ]);
-
-            // Update only the fields that were provided
+    
+            // Update fields
             foreach ($validatedData as $field => $value) {
                 if ($field === 'password') {
-                    $user->password_hash = Hash::make($value);
+                    $targetUser->password_hash = Hash::make($value);
                 } else {
-                    $user->$field = $value;
+                    $targetUser->$field = $value;
                 }
             }
-
-            // Save the changes
-            $user->save();
-
+    
+            $targetUser->save();
+    
             // Log the update
-            \Log::info('Profile updated:', [
-                'user_id' => $user->user_id,
+            \Log::info('Profile updated by ID:', [
+                'updated_by' => $authUser->user_id,
+                'target_user_id' => $targetUser->user_id,
                 'updated_fields' => array_keys($validatedData)
             ]);
-
+    
             // Return the updated profile
             return response()->json([
                 'status' => 'success',
                 'message' => 'Profile updated successfully',
                 'data' => [
                     'user' => [
-                        'id' => $user->user_id,
-                        'username' => $user->username,
-                        'email' => $user->email,
-                        'first_name' => $user->first_name,
-                        'last_name' => $user->last_name,
-                        'roles' => $user->roles->pluck('role_name')
+                        'id' => $targetUser->user_id,
+                        'username' => $targetUser->username,
+                        'email' => $targetUser->email,
+                        'phone_number' => $targetUser->phone_number,
+                        'first_name' => $targetUser->first_name,
+                        'last_name' => $targetUser->last_name,
+                        'status' => $targetUser->status,
                     ]
                 ]
             ], 200);
@@ -71,7 +77,7 @@ class AuthController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-
+    
             return response()->json([
                 'status' => 'error',
                 'message' => 'An error occurred while updating profile',

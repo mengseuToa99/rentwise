@@ -13,6 +13,7 @@ Route::group(['prefix' => '/rentwise'], function () {
     Route::group(['middleware' => 'auth:sanctum'], function () {
         // Profile route
         Route::get('/profile', [AuthController::class, 'profile']); // GET method for profile
+        Route::put('/profile-edit/{id}', [AuthController::class, 'updateProfileById']);
 
         // User management routes
         Route::post('/create-user', [UserController::class, 'store']); // POST method for creating a user
