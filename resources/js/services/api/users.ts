@@ -4,6 +4,21 @@ import api from './axios-instance';
 
 export const userService = {
 
+    updateProfile: async (userData: FormData) => {
+        try {
+            const id = userData.get('id');
+            const response = await api.put(`/rentwise/profile-edit/${id}`, userData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+
     userLogin: async (userData: Partial<User>) => {
         try {
             const response = await api.post('/rentwise/login', userData);

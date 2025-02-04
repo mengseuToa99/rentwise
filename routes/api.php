@@ -19,4 +19,4 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::post('/create-user', [UserController::class, 'store']); // POST method for creating a user
         Route::get('/users/role/{role?}', [UserController::class, 'getUsersByRole']); // GET method for fetching users by role
     });
-});
+}); 

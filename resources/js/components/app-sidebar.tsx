@@ -9,12 +9,57 @@ import {
     SidebarMenuItem,
     SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, Wrench, MessageCircle, FileText, Settings, LogOut, User } from "lucide-react";
+import {
+    LayoutDashboard,
+    Wrench,
+    MessageCircle,
+    FileText,
+    Settings,
+    LogOut,
+    User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "./ModeToggle";
+import { userService } from "@/services/api/users";
+import React, { useState, useEffect } from "react";
 // import LanguageSwitcher from "./LanguageSwitcher"
 
+interface UserData {
+    username: string;
+    role: string;
+}
+
 export function AppSidebar() {
+    const [preview, setPreview] = useState<string | null>(null);
+    const [userData, setUserData] = useState<UserData>({
+        username: "",
+        role: ""
+    });
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await userService.getProfile({});
+                if (response.status === "success") {
+                    const { user } = response.data;
+                    setUserData({
+                        username: user.username,
+                        role: user.role
+                    });
+
+                    // Set preview if profile_img exists
+                    if (user.profile_img) {
+                        setPreview(user.profile_img);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch profile:", error);
+            }
+        };
+
+        fetchProfile();
+    }, []);
+
     // Menu items
     const items = [
         {
@@ -53,7 +98,6 @@ export function AppSidebar() {
         <Sidebar>
             <SidebarContent className="flex flex-col h-full">
                 {/* Profile Section */}
-
                 <div className="p-4">
                     <div className="flex items-center space-x-3">
                         {/* Profile Icon */}
@@ -64,13 +108,11 @@ export function AppSidebar() {
                         </a>
                         {/* Profile Name */}
                         <div>
-                            <h1 className="text-lg font-semibold">John Doe</h1>
-                            <p className="text-sm text-gray-500">Admin</p>
+                            <h1 className="text-lg font-semibold">{userData.username}</h1>
+                            <p className="text-sm text-gray-500">{userData.role}</p>
                         </div>
-
                     </div>
                 </div>
-
 
                 <SidebarSeparator />
 
@@ -102,9 +144,7 @@ export function AppSidebar() {
                     <div className="flex justify-between">
                         <a href="/login">
                             <SidebarMenuButton className="w-auto hover:bg-red-50 hover:text-red-600 ">
-
                                 <LogOut />
-
                             </SidebarMenuButton>
                         </a>
                         <ModeToggle />

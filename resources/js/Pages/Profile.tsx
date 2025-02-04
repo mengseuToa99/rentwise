@@ -8,6 +8,7 @@ import { Camera } from "lucide-react";
 import { userService } from "@/services/api/users";
 
 interface UserData {
+    id?: number;
     username: string;
     email: string;
     first_name: string;
@@ -17,6 +18,7 @@ interface UserData {
 }
 
 const Profile: React.FC = () => {
+    const [isEditing, setIsEditing] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [userData, setUserData] = useState<UserData>({
@@ -28,30 +30,30 @@ const Profile: React.FC = () => {
         profile_img: null
     });
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const response = await userService.getProfile({});
-                if (response.status === "success") {
-                    const { user } = response.data;
-                    setUserData({
-                        username: user.username,
-                        email: user.email,
-                        first_name: user.first_name,
-                        last_name: user.last_name,
-                        phone_number: user.phone_number,
-                        profile_img: null // Reset file input
-                    });
-                    
-                    // Set preview if profile_img exists
-                    if (user.profile_img) {
-                        setPreview(user.profile_img);
-                    }
+    const fetchProfile = async () => {
+        try {
+            const response = await userService.getProfile({});
+            if (response.status === "success") {
+                const { user } = response.data;
+                setUserData({
+                    id: user.id,
+                    username: user.username,
+                    email: user.email,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    phone_number: user.phone_number,
+                    profile_img: null
+                });
+                
+                if (user.profile_img) {
+                    setPreview(user.profile_img);
                 }
-            } catch (error) {
-                console.error("Failed to fetch profile:", error);
             }
-        };
+        } catch (error) {
+            console.error("Failed to fetch profile:", error);
+        }
+    };
+    useEffect(() => {
 
         fetchProfile();
     }, []);
@@ -81,21 +83,33 @@ const Profile: React.FC = () => {
         try {
             const formData = new FormData();
             
-            // Append all user data to FormData
-            Object.entries(userData).forEach(([key, value]) => {
-                if (value !== null) {
-                    formData.append(key, value);
+            if (userData.id) {
+                formData.append('id', userData.id.toString());
+            }
+    
+            // Log userData before submission
+            console.log('userData:', userData);
+            
+            ['email', 'first_name', 'last_name', 'phone_number'].forEach(key => {
+                if (userData[key]) {
+                    formData.append(key, userData[key]);
                 }
             });
-
-            await userService.updateUser(formData);
-            // Add success notification here
+    
+            // Log FormData content
+            for (let pair of formData.entries()) {
+                console.log('FormData:', pair[0], pair[1]);
+            }
+    
+            const response = await userService.updateProfile(formData);
+            console.log('Response:', response);
+            
+            await fetchProfile();
+            setIsEditing(false);
         } catch (error) {
             console.error("Failed to update profile:", error);
-            // Add error notification here
         }
     };
-
     return (
         <RootLayout>
             <div className="p-8">
@@ -110,10 +124,11 @@ const Profile: React.FC = () => {
                                 className="hidden"
                                 id="profile-photo-input"
                                 onChange={handleFileChange}
+                                disabled={!isEditing}
                             />
                             <label
                                 htmlFor="profile-photo-input"
-                                className="cursor-pointer flex flex-col items-center justify-center w-32 h-32 bg-gray-100 border border-dashed rounded-lg hover:bg-gray-200"
+                                className={`flex flex-col items-center justify-center w-32 h-32 bg-gray-100 border border-dashed rounded-lg ${isEditing ? 'hover:bg-gray-200 cursor-pointer' : ''}`}
                             >
                                 {preview ? (
                                     <img
@@ -139,6 +154,7 @@ const Profile: React.FC = () => {
                                         value={userData.first_name}
                                         onChange={handleInputChange}
                                         placeholder="Enter your first name"
+                                        disabled={!isEditing}
                                     />
                                 </div>
                                 <div className="flex flex-col w-full md:w-1/2 space-y-2">
@@ -148,6 +164,7 @@ const Profile: React.FC = () => {
                                         value={userData.last_name}
                                         onChange={handleInputChange}
                                         placeholder="Enter your last name"
+                                        disabled={!isEditing}
                                     />
                                 </div>
                             </div>
@@ -159,6 +176,7 @@ const Profile: React.FC = () => {
                                     value={userData.username}
                                     onChange={handleInputChange}
                                     placeholder="Enter your username"
+                                    disabled={!isEditing}
                                 />
                             </div>
 
@@ -170,6 +188,7 @@ const Profile: React.FC = () => {
                                     value={userData.email}
                                     onChange={handleInputChange}
                                     placeholder="Enter your email"
+                                    disabled={!isEditing}
                                 />
                             </div>
 
@@ -180,17 +199,36 @@ const Profile: React.FC = () => {
                                     value={userData.phone_number}
                                     onChange={handleInputChange}
                                     placeholder="Enter your phone number"
+                                    disabled={!isEditing}
                                 />
                             </div>
                         </div>
 
-                        {/* <Button 
-                            variant="default" 
-                            className="mt-6"
-                            type="submit"
-                        >
-                            Save Changes
-                        </Button> */}
+                        <div className="flex justify-end w-full max-w-2xl mt-6">
+                            {isEditing ? (
+                                <div className="space-x-4">
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={() => setIsEditing(false)}
+                                        type="button"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button 
+                                        type="submit"
+                                    >
+                                        Save Changes
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button 
+                                    onClick={() => setIsEditing(true)}
+                                    type="button"
+                                >
+                                    Edit Profile
+                                </Button>
+                            )}
+                        </div>
                     </form>
                 </div>
             </div>

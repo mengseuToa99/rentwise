@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\UserDetail;
 use Illuminate\Support\Facades\Hash;
+use League\Config\Exception\ValidationException;
 
 class AuthController extends Controller
 {
@@ -16,12 +17,26 @@ class AuthController extends Controller
         try {
             // Get the authenticated user
             $authUser = Auth::user();
+            
+            if (!$authUser) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
     
             // Fetch the target user by ID using the User model
-            $targetUser = User::findOrFail($id);
+            $targetUser = UserDetail::find($id);
+            
+            if (!$targetUser) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User not found'
+                ], 404);
+            }
     
             // Authorization: Allow only admins or the user themselves to update
-            if (!$authUser->is_admin && $authUser->user_id != $targetUser->user_id) {
+            if (!$authUser->is_admin && $authUser->id != $targetUser->id) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Unauthorized: You do not have permission to update this profile'
@@ -30,8 +45,8 @@ class AuthController extends Controller
     
             // Validate the request
             $validatedData = $request->validate([
-                'username' => 'sometimes|string|max:255|unique:users,username,' . $targetUser->user_id . ',user_id',
-                'email' => 'sometimes|email|max:255|unique:users,email,' . $targetUser->user_id . ',user_id',
+                'username' => 'sometimes|string|max:255|unique:users,username,' . $targetUser->id,
+                'email' => 'sometimes|email|max:255|unique:users,email,' . $targetUser->id,
                 'phone_number' => 'sometimes|string|max:20',
                 'first_name' => 'sometimes|string|max:255',
                 'last_name' => 'sometimes|string|max:255',
@@ -41,7 +56,7 @@ class AuthController extends Controller
             // Update fields
             foreach ($validatedData as $field => $value) {
                 if ($field === 'password') {
-                    $targetUser->password_hash = Hash::make($value);
+                    $targetUser->password = Hash::make($value);
                 } else {
                     $targetUser->$field = $value;
                 }
@@ -50,28 +65,26 @@ class AuthController extends Controller
             $targetUser->save();
     
             // Log the update
-            \Log::info('Profile updated by ID:', [
-                'updated_by' => $authUser->user_id,
-                'target_user_id' => $targetUser->user_id,
+            \Log::info('Profile updated:', [
+                'updated_by' => $authUser->id,
+                'target_user_id' => $targetUser->id,
                 'updated_fields' => array_keys($validatedData)
             ]);
     
-            // Return the updated profile
             return response()->json([
                 'status' => 'success',
-                'message' => 'Profile updated successfully',
                 'data' => [
-                    'user' => [
-                        'id' => $targetUser->user_id,
-                        'username' => $targetUser->username,
-                        'email' => $targetUser->email,
-                        'phone_number' => $targetUser->phone_number,
-                        'first_name' => $targetUser->first_name,
-                        'last_name' => $targetUser->last_name,
-                        'status' => $targetUser->status,
-                    ]
+                    'user' => $targetUser->fresh()
                 ]
-            ], 200);
+            ]);
+    
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->error()
+            ], 422);
+            
         } catch (\Exception $e) {
             \Log::error('Profile update error:', [
                 'message' => $e->getMessage(),
@@ -81,7 +94,7 @@ class AuthController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'An error occurred while updating profile',
-                'debug_message' => $e->getMessage()
+                'debug_message' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
