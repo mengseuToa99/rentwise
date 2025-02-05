@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class UtilityUsage extends Model
 {
+    protected $table = 'utility_usage';
     protected $primaryKey = 'usage_id';
     protected $fillable = ['room_id', 'utility_id', 'usage_date', 'old_meter_reading', 'new_meter_reading', 'amount_used'];
 

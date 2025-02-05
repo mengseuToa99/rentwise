@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class UtilityPrice extends Model
 {
+    protected $table = 'utility_prices';
     protected $primaryKey = 'price_id';
     protected $fillable = ['utility_id', 'price', 'effective_date'];
 

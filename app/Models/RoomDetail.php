@@ -5,8 +5,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class RoomDetail extends Model
 {
+    protected $table = 'room_detail';
     protected $primaryKey = 'room_id';
-    protected $fillable = ['property_id', 'room_number','floor_number', 'room_number','due_date', 'room_type', 'description', 'available', 'rent_amount'];
+    protected $fillable = ['property_id','room_name', 'room_number','floor_number', 'room_number','due_date', 'room_type', 'description', 'available', 'rent_amount'];
 
     public function property()
     {

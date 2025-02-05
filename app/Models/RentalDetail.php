@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class RentalDetail extends Model
 {
+    protected $table = 'rental_detail';
     protected $primaryKey = 'rental_id';
     protected $fillable = ['landlord_id', 'tenant_id', 'room_id', 'start_date', 'end_date', 'lease_agreement'];
 

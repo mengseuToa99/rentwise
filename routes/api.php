@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,5 +19,8 @@ Route::group(['prefix' => '/rentwise'], function () {
         // User management routes
         Route::post('/create-user', [UserController::class, 'store']); // POST method for creating a user
         Route::get('/users/role/{role?}', [UserController::class, 'getUsersByRole']); // GET method for fetching users by role
+
+        // Property management routes
+        Route::post('/properties-create', [PropertyController::class, 'store']); // POST method for creating a property
     });
 }); 

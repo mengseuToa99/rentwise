@@ -13,6 +13,7 @@ class UserDetail extends Authenticatable
     protected $table = 'user_detail';
     protected $primaryKey = 'user_id';
     
+    
     protected $fillable = [
         'username', 
         'password_hash', 
