@@ -56,6 +56,7 @@ const AccountPage: React.FC = () => {
                 description: "The new user has been added to the system.",
             });
             setIsDialogOpen(false);
+            
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || "Failed to create user.";
             toast(errorMessage, {

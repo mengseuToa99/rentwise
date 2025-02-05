@@ -54,8 +54,8 @@ const LoginPage: React.FC = () => {
             localStorage.setItem("user", JSON.stringify(response.data.user));
             
             // Show success message
-            toast("Login successful!", {
-                description: "Welcome back!",
+            toast("User login successfully!", {
+                description: "welcome back!",
             });
 
             // Redirect to dashboard or home page

@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::create('room_detail', function (Blueprint $table) {
             $table->id('room_id');
             $table->unsignedBigInteger('property_id');
-            $table->string('room_number');
+            $table->string('room_name');
+            $table->integer('floor_number');
+            $table->integer('room_number');
+            $table->timestamp('due_date');
             $table->enum('room_type', ['single', 'double', 'suite']);
             $table->text('description')->nullable();
             $table->boolean('available')->default(true);
