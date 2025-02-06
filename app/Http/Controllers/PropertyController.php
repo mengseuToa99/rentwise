@@ -39,34 +39,46 @@ class PropertyController extends Controller
             'rooms' => 'required|array',
             'rooms.*.floor_number' => 'required|integer|min:1',
             'rooms.*.room_number' => 'required|integer|min:1',
-            'rooms.*.description' => 'required|string',
-            'rooms.*.room_type' => 'required|in:Single,Double,Suite,Other',
+            'rooms.*.description' => 'nullable|string',
+            'rooms.*.room_type' => 'required|string|max:255',  // Changed to accept any string
             'rooms.*.rent_amount' => 'required|numeric|min:0',
             'rooms.*.electricity_reading' => 'required|numeric|min:0',
             'rooms.*.water_reading' => 'required|numeric|min:0',
             'rooms.*.due_date' => 'required|date',
             'rooms.*.available' => 'required|boolean'
         ]);
-
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+    
         DB::beginTransaction();
         try {
-            // Create utilities if they don't exist
-            if (!Utility::where('utility_id', 1)->exists()) {
-                Utility::create([
-                    'utility_id' => 1,
+            // Create utilities first and store their IDs
+            $electricityUtility = Utility::firstOrCreate(
+                ['utility_id' => 1],
+                [
                     'utility_name' => 'Electricity',
                     'description' => 'Electricity usage'
-                ]);
-            }
-
-            if (!Utility::where('utility_id', 2)->exists()) {
-                Utility::create([
-                    'utility_id' => 2,
+                ]
+            );
+    
+            $waterUtility = Utility::firstOrCreate(
+                ['utility_id' => 2],
+                [
                     'utility_name' => 'Water',
                     'description' => 'Water usage'
-                ]);
+                ]
+            );
+    
+            // Verify utilities were created successfully
+            if (!$electricityUtility || !$waterUtility) {
+                throw new \Exception('Failed to create utilities');
             }
-
+    
             $property = PropertyDetail::create([
                 'landlord_id' => $request->landlord_id,
                 'property_name' => $request->property_name,
@@ -76,52 +88,58 @@ class PropertyController extends Controller
                 'total_floors' => max(array_column($request->rooms, 'floor_number')),
                 'total_rooms' => count($request->rooms)
             ]);
-
+    
+            // Create utility prices
             UtilityPrice::create([
-                'utility_id' => 1,
+                'utility_id' => $electricityUtility->utility_id,
                 'price' => $request->electricity_price,
                 'effective_date' => now()
             ]);
-
+    
             UtilityPrice::create([
-                'utility_id' => 2,
+                'utility_id' => $waterUtility->utility_id,
                 'price' => $request->water_price,
                 'effective_date' => now()
             ]);
-
+    
             foreach ($request->rooms as $roomData) {
                 $room = new RoomDetail([
                     'floor_number' => $roomData['floor_number'],
                     'room_number' => $roomData['room_number'],
-                    'room_name' => 'F' . $roomData['floor_number'] . '-R' . $roomData['room_number'],
+                    'room_name' => sprintf(
+                        'F%d-%s-%s', 
+                        $roomData['floor_number'], 
+                        $roomData['room_type'], 
+                        $roomData['room_number']
+                    ),
                     'description' => $roomData['description'],
                     'room_type' => $roomData['room_type'],
                     'rent_amount' => $roomData['rent_amount'],
                     'due_date' => $roomData['due_date'],
                     'available' => $roomData['available']
                 ]);
-
+    
                 $property->rooms()->save($room);
-
+    
                 UtilityUsage::create([
                     'room_id' => $room->room_id,
-                    'utility_id' => 1,
+                    'utility_id' => $electricityUtility->utility_id,
                     'usage_date' => now(),
                     'new_meter_reading' => $roomData['electricity_reading'],
                     'old_meter_reading' => 0,
                     'amount_used' => 0
                 ]);
-
+    
                 UtilityUsage::create([
                     'room_id' => $room->room_id,
-                    'utility_id' => 2,
+                    'utility_id' => $waterUtility->utility_id,
                     'usage_date' => now(),
                     'new_meter_reading' => $roomData['water_reading'],
                     'old_meter_reading' => 0,
                     'amount_used' => 0
                 ]);
             }
-
+    
             DB::commit();
             return response()->json([
                 'property' => $property->load('rooms'), 
@@ -135,6 +153,7 @@ class PropertyController extends Controller
             ], 500);
         }
     }
+
     /**
      * Display the specified property.
      */

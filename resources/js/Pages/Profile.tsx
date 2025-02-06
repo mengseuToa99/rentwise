@@ -9,12 +9,18 @@ import { userService } from "@/services/api/users";
 
 interface UserData {
     id?: number;
+    user_id?: number;  // Added this
     username: string;
     email: string;
     first_name: string;
     last_name: string;
     phone_number: string;
     profile_img: File | null;
+    profile_picture?: string | null;  // Added this
+    id_card_picture?: string | null;  // Added this
+    status?: string;
+    last_login?: string | null;
+    failed_login_attempts?: number;
 }
 
 const Profile: React.FC = () => {
@@ -36,7 +42,7 @@ const Profile: React.FC = () => {
             if (response.status === "success") {
                 const { user } = response.data;
                 setUserData({
-                    id: user.id,
+                    id: user.user_id,  // Changed from id to user_id
                     username: user.username,
                     email: user.email,
                     first_name: user.first_name,
@@ -45,14 +51,15 @@ const Profile: React.FC = () => {
                     profile_img: null
                 });
                 
-                if (user.profile_img) {
-                    setPreview(user.profile_img);
+                if (user.profile_picture) {  // Changed from profile_img to profile_picture
+                    setPreview(user.profile_picture);
                 }
             }
         } catch (error) {
             console.error("Failed to fetch profile:", error);
         }
     };
+
     useEffect(() => {
 
         fetchProfile();
@@ -83,33 +90,35 @@ const Profile: React.FC = () => {
         try {
             const formData = new FormData();
             
+            // Add user_id instead of id to match your API response structure
             if (userData.id) {
-                formData.append('id', userData.id.toString());
+                formData.append('user_id', userData.id.toString());
             }
     
-            // Log userData before submission
-            console.log('userData:', userData);
-            
-            ['email', 'first_name', 'last_name', 'phone_number'].forEach(key => {
-                if (userData[key]) {
-                    formData.append(key, userData[key]);
-                }
-            });
+            // Add all fields that need to be updated
+            if (userData.first_name) formData.append('first_name', userData.first_name);
+            if (userData.last_name) formData.append('last_name', userData.last_name);
+            if (userData.phone_number) formData.append('phone_number', userData.phone_number);
+            if (userData.email) formData.append('email', userData.email);
+            if (userData.profile_img) formData.append('profile_img', userData.profile_img);
     
-            // Log FormData content
+            // Log FormData for debugging
             for (let pair of formData.entries()) {
-                console.log('FormData:', pair[0], pair[1]);
+                console.log('FormData content:', pair[0], pair[1]);
             }
     
             const response = await userService.updateProfile(formData);
-            console.log('Response:', response);
             
-            await fetchProfile();
-            setIsEditing(false);
+            if (response.status === "success") {
+                await fetchProfile();
+                setIsEditing(false);
+            }
         } catch (error) {
             console.error("Failed to update profile:", error);
         }
     };
+
+
     return (
         <RootLayout>
             <div className="p-8">

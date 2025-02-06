@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('floor_number');
             $table->integer('room_number');
             $table->timestamp('due_date');
-            $table->enum('room_type', ['single', 'double', 'suite']);
+            $table->string('room_type');
             $table->text('description')->nullable();
             $table->boolean('available')->default(true);
             $table->decimal('rent_amount', 10, 2);

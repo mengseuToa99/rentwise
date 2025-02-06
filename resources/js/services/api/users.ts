@@ -6,8 +6,8 @@ export const userService = {
 
     updateProfile: async (userData: FormData) => {
         try {
-            const id = userData.get('id');
-            const response = await api.put(`/rentwise/profile-edit/${id}`, userData, {
+            const user_id = userData.get('user_id'); // Changed from 'id' to 'user_id'
+            const response = await api.put(`/rentwise/profile-edit/${user_id}`, userData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
