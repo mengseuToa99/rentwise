@@ -1,23 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import RootLayout from "@/components/layout";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
-  Form,
+  FormField,
   FormControl,
   FormDescription,
-  FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Camera, ChevronDown, ChevronUp, Trash } from "lucide-react";
-import UnitForm from "../components/UnitForm";
+import UnitForm, { RoomTypePrice } from "../components/UnitForm";
 import {
   Carousel,
   CarouselContent,
@@ -60,22 +59,16 @@ const formSchema = z.object({
   ),
 });
 
-interface RoomTypePrice {
-  id: number;
-  roomType: string;
-  price: string;
-}
-
 const AddProperty: React.FC = () => {
   // File and preview states
   const [fileName, setFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
-  // Visibility and numeric states
+  // Visibility and numeric states for generating unit fields
   const [isUnitsVisible, setIsUnitsVisible] = useState(true);
   const [floors, setFloors] = useState<number>(0);
   const [roomsPerFloor, setRoomsPerFloor] = useState<number[]>([]);
-  
+
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRoomTypeDialogOpen, setIsRoomTypeDialogOpen] = useState(false);
@@ -90,21 +83,30 @@ const AddProperty: React.FC = () => {
       propertyName: "",
       description: "",
       address: "",
+      water_price: "",
+      electricity_price: "",
       units: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "units",
   });
+
+  // If the room type dialog opens and there is no entry, add a default empty one.
+  useEffect(() => {
+    if (isRoomTypeDialogOpen && roomTypePrices.length === 0) {
+      setRoomTypePrices([{ id: Date.now(), roomType: "", price: "" }]);
+    }
+  }, [isRoomTypeDialogOpen, roomTypePrices.length]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log("Form Values:", values);
     console.log("Room Type Price Entries:", roomTypePrices);
   }
 
-  // Handler for file input changes
+  // Handler for file input changes for property photo
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -114,27 +116,34 @@ const AddProperty: React.FC = () => {
     }
   };
 
-  // Handler for generating unit fields based on floors and rooms per floor
+  // Handler for generating unit fields. This function merges any existing unit data.
   const handleAddUnits = (floors: number, roomsPerFloor: number[]) => {
+    const oldUnits = form.getValues("units") || [];
+    const newUnits = [];
+    let counter = 0;
+
     for (let floor = 1; floor <= floors; floor++) {
-      for (let room = 1; room <= roomsPerFloor[floor - 1]; room++) {
-        append({
-          unitPhoto: undefined,
+      const count = roomsPerFloor[floor - 1] || 0;
+      for (let room = 1; room <= count; room++) {
+        newUnits.push({
+          unitPhoto: oldUnits[counter]?.unitPhoto ?? undefined,
           unitNumber: `Room ${room}`,
-          unitDescrption: "",
-          roomType: "", // You can later choose to use a selected room type from roomTypePrices
-          unitPrice: "",
-          electricityReading: "",
-          waterReading: "",
-          roomDueDate: new Date(), // Default date
+          unitDescrption: oldUnits[counter]?.unitDescrption ?? "",
+          roomType: oldUnits[counter]?.roomType ?? "",
+          unitPrice: oldUnits[counter]?.unitPrice ?? "",
+          electricityReading: oldUnits[counter]?.electricityReading ?? "",
+          waterReading: oldUnits[counter]?.waterReading ?? "",
+          roomDueDate: oldUnits[counter]?.roomDueDate ?? new Date(),
           floor: floor,
         });
+        counter++;
       }
     }
+    replace(newUnits);
     setIsDialogOpen(false);
   };
 
-  // Group units by floor for display
+  // Group units by floor for display (for grid/carousel layouts)
   const groupedUnits = fields.reduce((acc, unit) => {
     const floor = unit.floor;
     if (!acc[floor]) {
@@ -274,7 +283,7 @@ const AddProperty: React.FC = () => {
                         <FormItem className="flex-1">
                           <FormLabel>Electricity Price</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter Property  Electricity Price<" {...field} />
+                            <Input placeholder="Enter Property Electricity Price" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -300,6 +309,7 @@ const AddProperty: React.FC = () => {
               {/* Units Section - Buttons Above Horizontal Line */}
               <div className="flex flex-col mb-6">
                 <div className="flex items-center space-x-2">
+                  {/* Dialog for Adding Units */}
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                       <Button type="button">Add Unit</Button>
@@ -328,9 +338,9 @@ const AddProperty: React.FC = () => {
                               min="1"
                               value={roomsPerFloor[floorIndex] || 0}
                               onChange={(e) => {
-                                const newRoomsPerFloor = [...roomsPerFloor];
-                                newRoomsPerFloor[floorIndex] = Number(e.target.value);
-                                setRoomsPerFloor(newRoomsPerFloor);
+                                const newRooms = [...roomsPerFloor];
+                                newRooms[floorIndex] = Number(e.target.value);
+                                setRoomsPerFloor(newRooms);
                               }}
                             />
                           </div>
@@ -345,6 +355,7 @@ const AddProperty: React.FC = () => {
                     </DialogContent>
                   </Dialog>
 
+                  {/* Dialog for Room Type Price entries */}
                   <Dialog open={isRoomTypeDialogOpen} onOpenChange={setIsRoomTypeDialogOpen}>
                     <DialogTrigger asChild>
                       <Button type="button">Room Type Price</Button>
@@ -383,7 +394,6 @@ const AddProperty: React.FC = () => {
                             </Button>
                           </div>
                         ))}
-                        {/* Buttons on the same line */}
                         <div className="flex gap-4 pt-4 justify-between">
                           <Button type="button" onClick={handleAddRoomTypeRow}>
                             Add Another Room Type
@@ -416,11 +426,12 @@ const AddProperty: React.FC = () => {
                     {Object.entries(groupedUnits).map(([floor, units]) => (
                       <div key={floor} className="space-y-4">
                         <h3 className="text-xl font-bold">Floor {floor}</h3>
-                        {units.map((unit) => (
+                        {units.map((unit, idx) => (
                           <div key={unit.id} className="w-full">
                             <UnitForm
                               index={fields.findIndex((f) => f.id === unit.id)}
                               remove={remove}
+                              roomTypePrices={roomTypePrices}
                             />
                           </div>
                         ))}
@@ -441,6 +452,7 @@ const AddProperty: React.FC = () => {
                                   <UnitForm
                                     index={fields.findIndex((f) => f.id === unit.id)}
                                     remove={remove}
+                                    roomTypePrices={roomTypePrices}
                                   />
                                 </div>
                               ))}
