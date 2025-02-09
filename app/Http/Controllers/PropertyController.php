@@ -306,6 +306,7 @@ class PropertyController extends Controller
 
                 $property->rooms()->save($room);
 
+
                 UtilityUsage::create([
                     'room_id' => $room->room_id,
                     'utility_id' => $electricityUtility->utility_id,
@@ -338,6 +339,7 @@ class PropertyController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Display the specified property.

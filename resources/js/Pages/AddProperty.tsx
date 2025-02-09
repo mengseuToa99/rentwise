@@ -9,13 +9,12 @@ import { Button } from "@/components/ui/button";
 import {
     FormField,
     FormControl,
-    FormDescription,
     FormItem,
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Camera, ChevronDown, ChevronUp, Trash } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash } from "lucide-react";
 import UnitForm, { RoomTypePrice } from "../components/UnitForm";
 import {
     Carousel,
@@ -31,93 +30,104 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { propertyService } from "@/services/api/properties";
+import { PropertyFormData } from "@/services/api/types/property";
 
-// Define the form schema with Zod
+// Define the unit schema (without image) and include an availability field
+const unitSchema = z.object({
+    unitNumber: z.string().min(1, { message: "Unit Number is required." }),
+    unitDescrption: z.string().min(1, { message: "Unit Description is required." }),
+    roomType: z.string().min(1, { message: "Room Type is required." }),
+    unitPrice: z.string().min(1, { message: "Unit Price is required." }),
+    electricityReading: z.string().min(1, { message: "Electricity Reading is required." }),
+    waterReading: z.string().min(1, { message: "Water Reading is required." }),
+    roomDueDate: z.date({ required_error: "Room Due Date is required." }),
+    floor: z.number().min(1, { message: "Floor is required." }),
+    available: z.boolean().default(true),
+});
+
+// Update the property schema to include the new "location" field
 const formSchema = z.object({
-    propertyPhoto: z
-        .instanceof(File, { message: "Please upload a valid file." })
-        .refine((file) => file.size > 0, { message: "File cannot be empty." }),
     propertyName: z.string().min(1, { message: "Property name is required." }),
     description: z.string().min(1, { message: "Description is required." }),
     address: z.string().min(1, { message: "Address is required." }),
     location: z.string().min(1, { message: "Location is required." }),
     water_price: z.string().min(1, { message: "Water Price is required." }),
     electricity_price: z.string().min(1, { message: "Electricity Price is required." }),
-    units: z.array(
-        z.object({
-            unitPhoto: z
-                .instanceof(File, { message: "Please upload a valid file." })
-                .refine((file) => file.size > 0, { message: "File cannot be empty." }),
-            unitNumber: z.string().min(1, { message: "Unit Number is required." }),
-            unitDescrption: z.string().min(1, { message: "Unit Description is required." }),
-            roomType: z.string().min(1, { message: "Room Type is required." }),
-            unitPrice: z.string().min(1, { message: "Unit Price is required." }),
-            electricityReading: z.string().min(1, { message: "Electricity Reading is required." }),
-            waterReading: z.string().min(1, { message: "Water Reading is required." }),
-            roomDueDate: z.date({ required_error: "Room Due Date is required." }),
-            floor: z.number().min(1, { message: "Floor is required." }),
-        })
-    ),
+    units: z.array(unitSchema),
 });
 
 const AddProperty: React.FC = () => {
-    // File and preview states
-    const [fileName, setFileName] = useState<string | null>(null);
-    const [preview, setPreview] = useState<string | null>(null);
-
-    // Visibility and numeric states for generating unit fields
     const [isUnitsVisible, setIsUnitsVisible] = useState(true);
     const [floors, setFloors] = useState<number>(0);
     const [roomsPerFloor, setRoomsPerFloor] = useState<number[]>([]);
-
-    // Dialog states
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isRoomTypeDialogOpen, setIsRoomTypeDialogOpen] = useState(false);
-
-    // State for dynamic room type/price entries
     const [roomTypePrices, setRoomTypePrices] = useState<RoomTypePrice[]>([]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            propertyPhoto: undefined,
             propertyName: "",
             description: "",
             address: "",
+            location: "",
             water_price: "",
             electricity_price: "",
             units: [],
         },
     });
 
-    const { fields, append, remove, replace } = useFieldArray({
+    const { fields, remove, replace } = useFieldArray({
         control: form.control,
         name: "units",
     });
 
-    // If the room type dialog opens and there is no entry, add a default empty one.
     useEffect(() => {
         if (isRoomTypeDialogOpen && roomTypePrices.length === 0) {
             setRoomTypePrices([{ id: Date.now(), roomType: "", price: "" }]);
         }
     }, [isRoomTypeDialogOpen, roomTypePrices.length]);
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log("Form Values:", values);
-        console.log("Room Type Price Entries:", roomTypePrices);
-    }
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        // Create payload
+        const payload: PropertyFormData = {
+          landlord_id: 1, // Replace with a dynamic value if needed
+          property_name: values.propertyName,
+          address: values.address,
+          location: values.location,
+          description: values.description,
+          water_price: parseFloat(values.water_price),
+          electricity_price: parseFloat(values.electricity_price),
+          rooms: values.units.map(unit => ({
+            floor_number: unit.floor,
+            room_number: unit.unitNumber,
+            description: unit.unitDescrption,
+            room_type: unit.roomType,
+            rent_amount: parseFloat(unit.unitPrice),
+            electricity_reading: parseFloat(unit.electricityReading),
+            water_reading: parseFloat(unit.waterReading),
+            due_date: unit.roomDueDate.toISOString().slice(0, 10),
+            available: unit.available
+          }))
+        };
 
-    // Handler for file input changes for property photo
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            form.setValue("propertyPhoto", file);
-            setFileName(file.name);
-            setPreview(URL.createObjectURL(file));
+        // Optional: Log payload to check its structure
+        console.log("Payload:", JSON.stringify(payload, null, 2));
+
+        try {
+            const data = await propertyService.createProperty(payload);
+            toast.success("Property created successfully!");
+            console.log("API response:", data);
+        } catch (error: any) {
+            const errorMessage =
+                error.response?.data?.message || "Failed to create property.";
+            toast.error(errorMessage);
+            console.error("Error submitting property:", error);
         }
     };
 
-    // Handler for generating unit fields. This function merges any existing unit data.
     const handleAddUnits = (floors: number, roomsPerFloor: number[]) => {
         const oldUnits = form.getValues("units") || [];
         const newUnits = [];
@@ -127,7 +137,6 @@ const AddProperty: React.FC = () => {
             const count = roomsPerFloor[floor - 1] || 0;
             for (let room = 1; room <= count; room++) {
                 newUnits.push({
-                    unitPhoto: oldUnits[counter]?.unitPhoto ?? undefined,
                     unitNumber: `Room ${room}`,
                     unitDescrption: oldUnits[counter]?.unitDescrption ?? "",
                     roomType: oldUnits[counter]?.roomType ?? "",
@@ -136,6 +145,7 @@ const AddProperty: React.FC = () => {
                     waterReading: oldUnits[counter]?.waterReading ?? "",
                     roomDueDate: oldUnits[counter]?.roomDueDate ?? new Date(),
                     floor: floor,
+                    available: oldUnits[counter]?.available ?? true,
                 });
                 counter++;
             }
@@ -144,7 +154,6 @@ const AddProperty: React.FC = () => {
         setIsDialogOpen(false);
     };
 
-    // Group units by floor for display (for grid/carousel layouts)
     const groupedUnits = fields.reduce((acc, unit) => {
         const floor = unit.floor;
         if (!acc[floor]) {
@@ -154,7 +163,6 @@ const AddProperty: React.FC = () => {
         return acc;
     }, {} as Record<number, typeof fields>);
 
-    // Room Type Price Handlers
     const handleAddRoomTypeRow = () => {
         setRoomTypePrices((prev) => [
             ...prev,
@@ -187,139 +195,97 @@ const AddProperty: React.FC = () => {
         <RootLayout>
             <div className="p-4 sm:p-8">
                 <h1 className="text-3xl font-bold mb-6">Add Property</h1>
-
                 <div className="border p-4 sm:p-8 rounded-lg">
                     <FormProvider {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                            {/* Property Photo, Name, Description, and Address Fields */}
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="propertyPhoto"
-                                    render={() => (
-                                        <FormItem className="w-full sm:w-1/3">
-                                            <FormLabel>Upload Photo Of Your Property</FormLabel>
-                                            <FormControl>
-                                                <div className="flex flex-col items-center space-y-3">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/png, image/jpeg"
-                                                        className="hidden"
-                                                        id="photo-input"
-                                                        onChange={handleFileChange}
-                                                    />
-                                                    <label
-                                                        htmlFor="photo-input"
-                                                        className="cursor-pointer flex flex-col items-center justify-center w-32 h-32 bg-gray-100 border border-dashed rounded-lg hover:bg-gray-200"
-                                                    >
-                                                        {preview ? (
-                                                            <img
-                                                                src={preview}
-                                                                alt="Preview"
-                                                                className="w-full h-full object-cover rounded-lg"
-                                                            />
-                                                        ) : (
-                                                            <Camera size={32} className="text-gray-500" />
-                                                        )}
-                                                    </label>
-                                                    <span className="text-sm text-gray-600">
-                                                        {fileName || "No file selected"}
-                                                    </span>
-                                                </div>
-                                            </FormControl>
-                                            <FormDescription>
-                                                Please upload a PNG or JPEG photo.
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="flex flex-col w-full space-y-4">
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="propertyName"
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Property Name</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Enter Your Property Name" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="description"
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Description</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Enter Description Of Your Property" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="water_price"
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Water Price</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Enter Property Water Price" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="electricity_price"
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Electricity Price</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Enter Property Electricity Price" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="address"
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Address</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Enter Address" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="location"
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Location</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Enter Location" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
+                            {/* Property Details Fields */}
+                            <div className="flex flex-col gap-4">
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="propertyName"
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1">
+                                                <FormLabel>Property Name</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Enter Your Property Name" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="description"
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1">
+                                                <FormLabel>Description</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Enter Description Of Your Property" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
 
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="water_price"
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1">
+                                                <FormLabel>Water Price</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Enter Property Water Price" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="electricity_price"
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1">
+                                                <FormLabel>Electricity Price</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Enter Property Electricity Price" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                {/* Address and Location Row */}
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="address"
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1">
+                                                <FormLabel>Address</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Enter Address" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="location"
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1">
+                                                <FormLabel>Location</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Enter Location" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                 </div>
                             </div>
 
@@ -423,7 +389,6 @@ const AddProperty: React.FC = () => {
                                         </DialogContent>
                                     </Dialog>
                                 </div>
-                                {/* Horizontal Line with Collapse Toggle */}
                                 <div className="flex items-center mt-2">
                                     <hr className="flex-grow border-t-4 border-black dark:border-white" />
                                     <div
@@ -438,12 +403,11 @@ const AddProperty: React.FC = () => {
                             {/* Collapsible Section for Units */}
                             {isUnitsVisible && (
                                 <>
-                                    {/* Grid layout for larger screens */}
                                     <div className="hidden md:grid grid-cols-1 gap-4 max-w-full">
                                         {Object.entries(groupedUnits).map(([floor, units]) => (
                                             <div key={floor} className="space-y-4">
                                                 <h3 className="text-xl font-bold">Floor {floor}</h3>
-                                                {units.map((unit, idx) => (
+                                                {units.map((unit) => (
                                                     <div key={unit.id} className="w-full">
                                                         <UnitForm
                                                             index={fields.findIndex((f) => f.id === unit.id)}
@@ -455,8 +419,6 @@ const AddProperty: React.FC = () => {
                                             </div>
                                         ))}
                                     </div>
-
-                                    {/* Carousel layout for smaller screens */}
                                     <div className="md:hidden w-full">
                                         <Carousel className="w-full">
                                             <CarouselContent className="w-full">
