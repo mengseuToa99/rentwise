@@ -89,7 +89,9 @@ const UnitForm: React.FC<UnitFormProps> = ({
               <FormItem className="flex-1">
                 <FormLabel>Unit Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="Unit Number" {...field} />
+                  <Input
+                    placeholder={field.value?.toString() || "Unit Number"}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
