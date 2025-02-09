@@ -131,28 +131,33 @@ const AddProperty: React.FC = () => {
     const handleAddUnits = (floors: number, roomsPerFloor: number[]) => {
         const oldUnits = form.getValues("units") || [];
         const newUnits = [];
-        let counter = 0;
-
+        
+        // Loop through each floor
         for (let floor = 1; floor <= floors; floor++) {
-            const count = roomsPerFloor[floor - 1] || 0;
-            for (let room = 1; room <= count; room++) {
-                newUnits.push({
-                    unitNumber: `Room ${room}`,
-                    unitDescrption: oldUnits[counter]?.unitDescrption ?? "",
-                    roomType: oldUnits[counter]?.roomType ?? "",
-                    unitPrice: oldUnits[counter]?.unitPrice ?? "",
-                    electricityReading: oldUnits[counter]?.electricityReading ?? "",
-                    waterReading: oldUnits[counter]?.waterReading ?? "",
-                    roomDueDate: oldUnits[counter]?.roomDueDate ?? new Date(),
-                    floor: floor,
-                    available: oldUnits[counter]?.available ?? true,
-                });
-                counter++;
-            }
+          // Get the number of rooms for this floor; default to 0 if not specified
+          const count = roomsPerFloor[floor - 1] || 0;
+          
+          // Loop through each room on that floor
+          for (let room = 1; room <= count; room++) {
+            newUnits.push({
+              // Generate room number as an integer:
+              // For example, floor 1, room 1 => 1 * 100 + 1 = 101
+              unitNumber: floor * 100 + room,
+              unitDescrption: oldUnits[newUnits.length]?.unitDescrption ?? "",
+              roomType: oldUnits[newUnits.length]?.roomType ?? "",
+              unitPrice: oldUnits[newUnits.length]?.unitPrice ?? "",
+              electricityReading: oldUnits[newUnits.length]?.electricityReading ?? "",
+              waterReading: oldUnits[newUnits.length]?.waterReading ?? "",
+              roomDueDate: oldUnits[newUnits.length]?.roomDueDate ?? new Date(),
+              floor: floor,
+              available: oldUnits[newUnits.length]?.available ?? true,
+            });
+          }
         }
         replace(newUnits);
         setIsDialogOpen(false);
-    };
+      };
+      
 
     const groupedUnits = fields.reduce((acc, unit) => {
         const floor = unit.floor;
