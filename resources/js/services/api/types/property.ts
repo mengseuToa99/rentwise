@@ -12,7 +12,7 @@ export interface PropertyFormData {
   
   export interface Room {
     floor_number: number;
-    room_number: string;
+    room_number: number;
     description: string;
     room_type: string;
     rent_amount: number;
@@ -24,7 +24,7 @@ export interface PropertyFormData {
   
   // If you need to match your form's unit structure exactly:
   export interface UnitFormValues {
-    unitNumber: string;
+    unitNumber: number;
     unitDescrption: string;
     roomType: string;
     unitPrice: string;

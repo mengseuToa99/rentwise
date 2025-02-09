@@ -36,7 +36,7 @@ import { PropertyFormData } from "@/services/api/types/property";
 
 // Define the unit schema (without image) and include an availability field
 const unitSchema = z.object({
-    unitNumber: z.string().min(1, { message: "Unit Number is required." }),
+    unitNumber: z.number().min(1, { message: "Unit Number is required." }),
     unitDescrption: z.string().min(1, { message: "Unit Description is required." }),
     roomType: z.string().min(1, { message: "Room Type is required." }),
     unitPrice: z.string().min(1, { message: "Unit Price is required." }),
@@ -93,24 +93,24 @@ const AddProperty: React.FC = () => {
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         // Create payload
         const payload: PropertyFormData = {
-          landlord_id: 1, // Replace with a dynamic value if needed
-          property_name: values.propertyName,
-          address: values.address,
-          location: values.location,
-          description: values.description,
-          water_price: parseFloat(values.water_price),
-          electricity_price: parseFloat(values.electricity_price),
-          rooms: values.units.map(unit => ({
-            floor_number: unit.floor,
-            room_number: unit.unitNumber,
-            description: unit.unitDescrption,
-            room_type: unit.roomType,
-            rent_amount: parseFloat(unit.unitPrice),
-            electricity_reading: parseFloat(unit.electricityReading),
-            water_reading: parseFloat(unit.waterReading),
-            due_date: unit.roomDueDate.toISOString().slice(0, 10),
-            available: unit.available
-          }))
+            landlord_id: 1, // Replace with a dynamic value if needed
+            property_name: values.propertyName,
+            address: values.address,
+            location: values.location,
+            description: values.description,
+            water_price: parseFloat(values.water_price),
+            electricity_price: parseFloat(values.electricity_price),
+            rooms: values.units.map(unit => ({
+                floor_number: unit.floor,
+                room_number: unit.unitNumber,
+                description: unit.unitDescrption,
+                room_type: unit.roomType,
+                rent_amount: parseFloat(unit.unitPrice),
+                electricity_reading: parseFloat(unit.electricityReading),
+                water_reading: parseFloat(unit.waterReading),
+                due_date: unit.roomDueDate.toISOString().slice(0, 10),
+                available: unit.available
+            }))
         };
 
         // Optional: Log payload to check its structure
@@ -131,33 +131,33 @@ const AddProperty: React.FC = () => {
     const handleAddUnits = (floors: number, roomsPerFloor: number[]) => {
         const oldUnits = form.getValues("units") || [];
         const newUnits = [];
-        
+
         // Loop through each floor
         for (let floor = 1; floor <= floors; floor++) {
-          // Get the number of rooms for this floor; default to 0 if not specified
-          const count = roomsPerFloor[floor - 1] || 0;
-          
-          // Loop through each room on that floor
-          for (let room = 1; room <= count; room++) {
-            newUnits.push({
-              // Generate room number as an integer:
-              // For example, floor 1, room 1 => 1 * 100 + 1 = 101
-              unitNumber: floor * 100 + room,
-              unitDescrption: oldUnits[newUnits.length]?.unitDescrption ?? "",
-              roomType: oldUnits[newUnits.length]?.roomType ?? "",
-              unitPrice: oldUnits[newUnits.length]?.unitPrice ?? "",
-              electricityReading: oldUnits[newUnits.length]?.electricityReading ?? "",
-              waterReading: oldUnits[newUnits.length]?.waterReading ?? "",
-              roomDueDate: oldUnits[newUnits.length]?.roomDueDate ?? new Date(),
-              floor: floor,
-              available: oldUnits[newUnits.length]?.available ?? true,
-            });
-          }
+            // Get the number of rooms for this floor; default to 0 if not specified
+            const count = roomsPerFloor[floor - 1] || 0;
+
+            // Loop through each room on that floor
+            for (let room = 1; room <= count; room++) {
+                newUnits.push({
+                    // Generate room number as an integer:
+                    // For example, floor 1, room 1 => 1 * 100 + 1 = 101
+                    unitNumber: floor * 100 + room,
+                    unitDescrption: oldUnits[newUnits.length]?.unitDescrption ?? "",
+                    roomType: oldUnits[newUnits.length]?.roomType ?? "",
+                    unitPrice: oldUnits[newUnits.length]?.unitPrice ?? "",
+                    electricityReading: oldUnits[newUnits.length]?.electricityReading ?? "",
+                    waterReading: oldUnits[newUnits.length]?.waterReading ?? "",
+                    roomDueDate: oldUnits[newUnits.length]?.roomDueDate ?? new Date(),
+                    floor: floor,
+                    available: oldUnits[newUnits.length]?.available ?? true,
+                });
+            }
         }
         replace(newUnits);
         setIsDialogOpen(false);
-      };
-      
+    };
+
 
     const groupedUnits = fields.reduce((acc, unit) => {
         const floor = unit.floor;
