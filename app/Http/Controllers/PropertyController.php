@@ -15,6 +15,206 @@ use Illuminate\Support\Facades\Validator;
 class PropertyController extends Controller
 {
 
+    public function deleteUnit(Request $request, $property_id)  // Changed to receive property_id directly
+    {
+        // First find the property
+        $property = PropertyDetail::where('property_id', $property_id)->first();
+        
+        if (!$property) {
+            return response()->json([
+                'message' => 'Property not found',
+                'property_id' => $property_id
+            ], 404);
+        }
+
+        // Validate the incoming request
+        $validator = Validator::make($request->all(), [
+            'floor_number' => 'required|integer',
+            'room_number' => 'required|integer'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // Add debugging to see what we're searching for
+            $searchCriteria = [
+                'property_id' => $property_id,  // Use the direct property_id
+                'floor_number' => (int)$request->floor_number,
+                'room_number' => (int)$request->room_number
+            ];
+
+            // Find the room by floor number and room number
+            $room = RoomDetail::where('property_id', $property_id)
+                ->where('floor_number', (int)$request->floor_number)
+                ->where('room_number', (int)$request->room_number)
+                ->first();
+
+            if (!$room) {
+                // Get all rooms for this property to help debug
+                $existingRooms = RoomDetail::where('property_id', $property_id)
+                    ->get(['room_id', 'property_id', 'room_number', 'floor_number', 'room_name']);
+
+                return response()->json([
+                    'message' => 'Room not found in this property',
+                    'search_criteria' => $searchCriteria,
+                    'existing_rooms' => $existingRooms,
+                    'property_details' => $property
+                ], 404);
+            }
+
+            // Delete the room
+            $deletedRoom = [
+                'property_id' => $property_id,
+                'room_name' => $room->room_name,
+                'floor_number' => $room->floor_number,
+                'room_number' => $room->room_number
+            ];
+            
+            $room->delete();
+
+            \DB::commit();
+
+            return response()->json([
+                'message' => 'Room deleted successfully',
+                'deleted_room' => $deletedRoom
+            ], 200);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'message' => 'An error occurred while deleting the room',
+                'error' => $e->getMessage(),
+                'search_criteria' => $searchCriteria ?? null
+            ], 500);
+        }
+    }
+
+    
+    public function deleteProperty(Request $request, PropertyDetail $property)
+    {
+        // Check if the property belongs to the authenticated landlord
+        // if ($property->landlord_id !== $request->user()->id) {
+        //     return response()->json(['message' => 'Unauthorized access'], 403);
+        // }
+
+        try {
+            \DB::beginTransaction();
+
+            // First delete all rooms associated with the property
+            // This assumes you have set up cascade delete in your migration
+            // If not, you need to delete rooms explicitly
+            $property->rooms()->delete();
+
+            // Now delete the property
+            $property->delete();
+
+            \DB::commit();
+
+            return response()->json([
+                'message' => 'Property and associated rooms deleted successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'message' => 'An error occurred while deleting the property',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update the specified property.
+     */
+
+    public function updateProperty(Request $request, PropertyDetail $property)
+    {
+        // dd($request->user()->id);
+        // First validate the property belongs to the landlord
+        // if ($property->landlord_id !== $request->user()->id) {
+        //     return response()->json(['message' => 'Unauthorized access'], 403);
+        // }
+
+        // Validate main property details
+        $validator = Validator::make($request->all(), [
+            'property_name' => 'sometimes|required|string|max:255',
+            'address' => 'sometimes|required|string',
+            'location' => 'sometimes|required|string',
+            'description' => 'sometimes|required|string',
+            'water_price' => 'sometimes|required|numeric|min:0',
+            'electricity_price' => 'sometimes|required|numeric|min:0',
+            'rooms' => 'sometimes|required|array',
+            'rooms.*.floor_number' => 'required|integer|min:1',
+            'rooms.*.room_number' => 'required|string',
+            'rooms.*.description' => 'required|string',
+            'rooms.*.room_type' => 'required|string|in:Single,Double,Studio',
+            'rooms.*.rent_amount' => 'required|numeric|min:0',
+            'rooms.*.electricity_reading' => 'required|numeric|min:0',
+            'rooms.*.water_reading' => 'required|numeric|min:0',
+            'rooms.*.due_date' => 'required|date',
+            'rooms.*.available' => 'required|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            \DB::beginTransaction();
+
+            // Update main property details
+            $property->update($request->only([
+                'property_name',
+                'address',
+                'location',
+                'description',
+                'water_price',
+                'electricity_price'
+            ]));
+
+            // Update rooms if provided
+            if ($request->has('rooms')) {
+                // Assuming you have a Room model and rooms relationship
+                foreach ($request->rooms as $roomData) {
+                    $property->rooms()->updateOrCreate(
+                        [
+                            'room_number' => $roomData['room_number'],
+                            'floor_number' => $roomData['floor_number']
+                        ],
+                        [
+                            'description' => $roomData['description'],
+                            'room_type' => $roomData['room_type'],
+                            'rent_amount' => $roomData['rent_amount'],
+                            'electricity_reading' => $roomData['electricity_reading'],
+                            'water_reading' => $roomData['water_reading'],
+                            'due_date' => $roomData['due_date'],
+                            'available' => $roomData['available']
+                        ]
+                    );
+                }
+            }
+
+            \DB::commit();
+
+            // Load the updated property with its rooms
+            $property->load('rooms');
+
+            return response()->json([
+                'property' => $property,
+                'message' => 'Property updated successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'message' => 'An error occurred while updating the property',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Update the specified room with detailed validation.
      *
@@ -23,7 +223,7 @@ class PropertyController extends Controller
      * @param int $roomId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function editRoom(Request $request, $propertyId, $roomId)
+    public function editUnit(Request $request, $propertyId, $roomId)
     {
         $property = PropertyDetail::find($propertyId);
         if (!$property) {
@@ -208,6 +408,7 @@ class PropertyController extends Controller
         }
     }
 
+
     /**
      * Store a newly created property.
      */
@@ -375,33 +576,7 @@ class PropertyController extends Controller
         ], 200);
     }
 
-    /**
-     * Update the specified property.
-     */
-    public function update(Request $request, $id)
-    {
-        $property = PropertyDetail::find($id);
 
-        if (!$property) {
-            return response()->json(['message' => 'Property not found'], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'property_name' => 'string|max:255',
-            'address' => 'string',
-            'location' => 'string',
-            'total_floors' => 'integer|min:1',
-            'total_rooms' => 'integer|min:1',
-            'description' => 'string'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $property->update($request->all());
-        return response()->json(['property' => $property, 'message' => 'Property updated successfully'], 200);
-    }
 
     /**
      * Remove the specified property.
