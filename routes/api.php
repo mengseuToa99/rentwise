@@ -19,9 +19,9 @@ Route::group(['prefix' => '/rentwise'], function () {
 
         // User management routes
         Route::post('/create-user', [UserController::class, 'store']); // POST method for creating a user
-       
 
         // Property management routes
-        Route::post('/properties-create', [PropertyController::class, 'store']); // POST method for creating a property
+        Route::post('/properties-create', [PropertyController::class, 'store']); 
+        Route::get('/landlords/{landlordId}/properties', [PropertyController::class, 'getPropertiesByLandlord']);
     });
 }); 
