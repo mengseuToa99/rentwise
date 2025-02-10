@@ -414,8 +414,17 @@ class PropertyController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'landlord_id' => 'required|exists:user_detail,user_id',
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not authenticated'
+            ], 401);
+        }
+
+        $validator = Validator::make($request->all(), 
+        [
             'property_name' => 'required|string|max:255',
             'address' => 'required|string',
             'location' => 'required|string',
@@ -466,7 +475,7 @@ class PropertyController extends Controller
             }
 
             $property = PropertyDetail::create([
-                'landlord_id' => $request->landlord_id,
+                'landlord_id' =>  $user->user_id,
                 'property_name' => $request->property_name,
                 'address' => $request->address,
                 'location' => $request->location,
