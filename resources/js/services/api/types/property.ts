@@ -1,5 +1,6 @@
 // resources/js/services/api/types/property.ts
 export interface PropertyFormData {
+    property_id: number;
     landlord_id: number;
     property_name: string;
     description: string;
@@ -11,6 +12,7 @@ export interface PropertyFormData {
   }
   
   export interface Room {
+    room_id: number;
     floor_number: number;
     room_number: number;
     description: string;
