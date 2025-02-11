@@ -7,7 +7,11 @@ export default defineConfig({
     plugins: [
         laravel({
             input: 'resources/js/app.tsx',
-            refresh: true,
+            refresh: [
+                'resources/views/**', 
+                'app/Http/Controllers/**', 
+                'resources/lang/**' // Excluding 'routes/api.php' to prevent unnecessary reloads
+            ],
         }),
         react(),
     ],
@@ -19,10 +23,10 @@ export default defineConfig({
     server: {
         host: true, // Needed for Docker
         hmr: {
-            host: 'localhost'
+            host: '0.0.0.0', // Ensures it works inside Docker
         },
         watch: {
-            usePolling: true
+            usePolling: false, // Disable polling unless necessary
         },
         port: 5173,
         strictPort: true,

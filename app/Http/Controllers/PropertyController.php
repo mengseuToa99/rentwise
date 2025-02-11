@@ -554,8 +554,9 @@ class PropertyController extends Controller
     /**
      * Display the specified property.
      */
-    public function getPropertiesByLandlord($landlordId)
+    public function getPropertiesByLandlord()
     {
+        $landlordId = Auth::user()->user_id;
         // Validate if the landlord exists
         $properties = PropertyDetail::where('landlord_id', $landlordId)
             ->with(['images', 'rooms' => function ($query) {
