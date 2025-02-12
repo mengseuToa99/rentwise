@@ -7,9 +7,33 @@ use App\Models\UtilityUsage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class UnitController extends Controller
 {
+
+    public function calculationUnit(Request $request) {
+
+        $user = Auth::user()->user_id;
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not authenticated'
+            ], 401);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'room_id' => 'required|exists:rooms,room_id',
+            'new_meter_reading' => 'required|numeric',
+            'utility_id' => 'required|exists:utilities,utility_id'
+        ]);
+
+
+    }
+
+
+
     public function getDueRooms()
     {
         $user = Auth::user()->user_id;

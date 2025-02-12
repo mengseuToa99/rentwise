@@ -32,7 +32,6 @@ services:
       - rentwise-network
     depends_on:
       - app
-
   node:
     image: node:20-alpine
     container_name: rentwise-node
@@ -43,11 +42,19 @@ services:
       - "5173:5173"
     networks:
       - rentwise-network
-    command: sh -c "npm install && npm run dev"
+    command: sh -c "pkill -f vite || true && npm install && NODE_ENV=development exec npm run dev"
     environment:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
+      - VITE_DISABLE_RESTART=true  # Add this to prevent automatic restarts
+  # Add these resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
 
+          
   db:
     image: mysql:8.0
     container_name: rentwise-db

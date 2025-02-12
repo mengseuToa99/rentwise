@@ -5,19 +5,21 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
     plugins: [
         laravel({
-            input: 'resources/js/app.tsx', // Entry point for React
-            refresh: true, // Enable hot module replacement (HMR)
+            input: 'resources/js/app.tsx',
+            refresh: true,
         }),
-        react(), // Enable React support
+        react(),
     ],
     server: {
-        host: '0.0.0.0', // Allow access from all hosts
+        host: '0.0.0.0',
         hmr: {
-            host: 'localhost', // HMR host
+            host: 'localhost',
         },
         watch: {
-            usePolling: true, // Enable polling for file changes (useful in some environments)
+            usePolling: true,
+            interval: 1000,
+            ignored: ['**/node_modules/**', '**/.git/**', '**/vendor/**', '**/.env']
         },
-        port: 5173, // Port for the Vite dev server
+        port: 5173,
     },
 });
