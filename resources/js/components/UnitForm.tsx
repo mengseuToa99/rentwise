@@ -24,10 +24,8 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-// Import the Switch component from your UI library.
 import { Switch } from "@/components/ui/switch";
 
-// Export the RoomTypePrice interface so it can be shared with the parent.
 export interface RoomTypePrice {
   id: number;
   roomType: string;
@@ -37,14 +35,15 @@ export interface RoomTypePrice {
 interface UnitFormProps {
   index: number;
   remove: (index: number) => void;
-  /** Array of room type price objects passed from the parent. */
   roomTypePrices?: RoomTypePrice[];
+  utilities: Array<{ utility_name: string }>;
 }
 
 const UnitForm: React.FC<UnitFormProps> = ({
   index,
   remove,
   roomTypePrices = [],
+  utilities,
 }) => {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const { control, setValue } = useFormContext();
@@ -54,14 +53,14 @@ const UnitForm: React.FC<UnitFormProps> = ({
     setValue(`units[${index}].roomDueDate`, selectedDate);
   };
 
-  // Ensure the due date is set in the form state once the component mounts or date changes.
   useEffect(() => {
-    setValue(`units[${index}].roomDueDate`, date);
+    if (date) {
+      setValue(`units[${index}].roomDueDate`, date);
+    }
   }, [date, index, setValue]);
 
   return (
     <div className="relative p-4 border rounded-lg w-full">
-      {/* Availability switch positioned at top right */}
       <div className="absolute top-2 right-2 flex items-center space-x-2">
         <span className="text-sm font-medium text-gray-700">Available</span>
         <FormField
@@ -78,9 +77,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
         />
       </div>
 
-      {/* The form fields below have a top margin to avoid overlapping the switch */}
       <div className="mt-8 space-y-4">
-        {/* First Row - Unit Details */}
         <div className="flex flex-col sm:flex-row gap-4">
           <FormField
             control={control}
@@ -91,6 +88,7 @@ const UnitForm: React.FC<UnitFormProps> = ({
                 <FormControl>
                   <Input
                     placeholder={field.value?.toString() || "Unit Number"}
+                    readOnly
                   />
                 </FormControl>
                 <FormMessage />
@@ -113,7 +111,6 @@ const UnitForm: React.FC<UnitFormProps> = ({
           />
         </div>
 
-        {/* Second Row - Room Type & Price */}
         <div className="flex flex-col sm:flex-row gap-4">
           <FormField
             control={control}
@@ -121,34 +118,33 @@ const UnitForm: React.FC<UnitFormProps> = ({
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormLabel>Room Type</FormLabel>
-                <FormControl>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      // When a room type is selected, look up its price.
-                      const selected = roomTypePrices.find(
-                        (rt) => rt.roomType === value
-                      );
-                      if (selected) {
-                        setValue(`units[${index}].unitPrice`, selected.price);
-                      }
-                    }}
-                    value={field.value}
-                  >
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    const selected = roomTypePrices.find(
+                      (rt) => rt.roomType === value
+                    );
+                    if (selected) {
+                      setValue(`units[${index}].unitPrice`, selected.price);
+                    }
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select room type" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {roomTypePrices
-                        .filter((rt) => rt.roomType.trim() !== "")
-                        .map((rt) => (
-                          <SelectItem key={rt.id} value={rt.roomType}>
-                            {rt.roomType}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
+                  </FormControl>
+                  <SelectContent>
+                    {roomTypePrices
+                      .filter((rt) => rt.roomType.trim() !== "")
+                      .map((rt) => (
+                        <SelectItem key={rt.id} value={rt.roomType}>
+                          {rt.roomType}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -169,35 +165,27 @@ const UnitForm: React.FC<UnitFormProps> = ({
           />
         </div>
 
-        {/* Third Row - Utilities & Due Date */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <FormField
-            control={control}
-            name={`units[${index}].electricityReading`}
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Electricity Reading</FormLabel>
-                <FormControl>
-                  <Input placeholder="Electricity Reading" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={control}
-            name={`units[${index}].waterReading`}
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Water Reading</FormLabel>
-                <FormControl>
-                  <Input placeholder="Water Reading" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {utilities.map((utility, utilityIndex) => (
+            <FormField
+              key={utility.utility_name}
+              control={control}
+              name={`units[${index}].utilityReadings.${utilityIndex}.reading`}
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>{utility.utility_name} Reading</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number"
+                      placeholder={`Enter ${utility.utility_name} Reading`}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ))}
 
           <FormField
             control={control}
@@ -205,30 +193,28 @@ const UnitForm: React.FC<UnitFormProps> = ({
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormLabel>Room Due Date</FormLabel>
-                <FormControl>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? date.toDateString() : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={handleDateChange}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </FormControl>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? date.toDateString() : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={handleDateChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
@@ -236,7 +222,6 @@ const UnitForm: React.FC<UnitFormProps> = ({
         </div>
       </div>
 
-      {/* Remove Unit Button */}
       <div className="mt-4 flex justify-end">
         <Button
           type="button"
