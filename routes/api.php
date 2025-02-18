@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\AccessPermissionController;
+use App\Http\Controllers\PermissionGroupController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +32,29 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::delete('/properties/{property}/delete-room', [PropertyController::class, 'deleteUnit']);
 
         //calculate unit
-        Route::get('/properties/unit/calculation', [UnitController::class, 'getDueRooms']);
+        Route::get('/properties/get-due-unit', [UnitController::class, 'getDueRooms']);
+        Route::post('/properties/unit/calculation', [UnitController::class, 'calculateUtilityUsage']);
+        Route::put('/unit-update', [UnitController::class, 'updateUtilityUsage']);
+
+        // Permission Group Controller
+        Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
+        Route::post('/permission-groups', [PermissionGroupController::class, 'store']);
+        Route::put('/permission-groups/{id}', [PermissionGroupController::class, 'update']);
+        Route::delete('/permission-groups/{id}', [PermissionGroupController::class, 'destroy']);
+
+        // Role Controller
+        Route::get('/roles', [RoleController::class, 'index']);
+        Route::post('/roles', [RoleController::class, 'store']);
+        Route::put('/roles/{id}', [RoleController::class, 'update']);
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
+
+        // Permission Group Controller
+        Route::get('/permissions', [AccessPermissionController::class, 'index']);
+        Route::post('/permissions', [AccessPermissionController::class, 'store']);
+        Route::put('/permissions/{id}', [AccessPermissionController::class, 'update']);
+        Route::delete('/permissions/{id}', [AccessPermissionController::class, 'destroy']);
+        
+
+
     });
 }); 

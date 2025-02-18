@@ -15,83 +15,83 @@ use Illuminate\Support\Facades\Validator;
 class PropertyController extends Controller
 {
 
-    public function deleteUnit(Request $request, $property_id)  // Changed to receive property_id directly
-    {
-        // First find the property
-        $property = PropertyDetail::where('property_id', $property_id)->first();
+    // public function deleteUnit(Request $request, $property_id)  // Changed to receive property_id directly
+    // {
+    //     // First find the property
+    //     $property = PropertyDetail::where('property_id', $property_id)->first();
         
-        if (!$property) {
-            return response()->json([
-                'message' => 'Property not found',
-                'property_id' => $property_id
-            ], 404);
-        }
+    //     if (!$property) {
+    //         return response()->json([
+    //             'message' => 'Property not found',
+    //             'property_id' => $property_id
+    //         ], 404);
+    //     }
 
-        // Validate the incoming request
-        $validator = Validator::make($request->all(), [
-            'floor_number' => 'required|integer',
-            'room_number' => 'required|integer'
-        ]);
+    //     // Validate the incoming request
+    //     $validator = Validator::make($request->all(), [
+    //         'floor_number' => 'required|integer',
+    //         'room_number' => 'required|integer'
+    //     ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+    //     if ($validator->fails()) {
+    //         return response()->json(['errors' => $validator->errors()], 422);
+    //     }
 
-        try {
-            \DB::beginTransaction();
+    //     try {
+    //         \DB::beginTransaction();
 
-            // Add debugging to see what we're searching for
-            $searchCriteria = [
-                'property_id' => $property_id,  // Use the direct property_id
-                'floor_number' => (int)$request->floor_number,
-                'room_number' => (int)$request->room_number
-            ];
+    //         // Add debugging to see what we're searching for
+    //         $searchCriteria = [
+    //             'property_id' => $property_id,  // Use the direct property_id
+    //             'floor_number' => (int)$request->floor_number,
+    //             'room_number' => (int)$request->room_number
+    //         ];
 
-            // Find the room by floor number and room number
-            $room = RoomDetail::where('property_id', $property_id)
-                ->where('floor_number', (int)$request->floor_number)
-                ->where('room_number', (int)$request->room_number)
-                ->first();
+    //         // Find the room by floor number and room number
+    //         $room = RoomDetail::where('property_id', $property_id)
+    //             ->where('floor_number', (int)$request->floor_number)
+    //             ->where('room_number', (int)$request->room_number)
+    //             ->first();
 
-            if (!$room) {
-                // Get all rooms for this property to help debug
-                $existingRooms = RoomDetail::where('property_id', $property_id)
-                    ->get(['room_id', 'property_id', 'room_number', 'floor_number', 'room_name']);
+    //         if (!$room) {dd
+    //             // Get all rooms for this property to help debug
+    //             $existingRooms = RoomDetail::where('property_id', $property_id)
+    //                 ->get(['room_id', 'property_id', 'room_number', 'floor_number', 'room_name']);
 
-                return response()->json([
-                    'message' => 'Room not found in this property',
-                    'search_criteria' => $searchCriteria,
-                    'existing_rooms' => $existingRooms,
-                    'property_details' => $property
-                ], 404);
-            }
+    //             return response()->json([
+    //                 'message' => 'Room not found in this property',
+    //                 'search_criteria' => $searchCriteria,
+    //                 'existing_rooms' => $existingRooms,
+    //                 'property_details' => $property
+    //             ], 404);
+    //         }
 
-            // Delete the room
-            $deletedRoom = [
-                'property_id' => $property_id,
-                'room_name' => $room->room_name,
-                'floor_number' => $room->floor_number,
-                'room_number' => $room->room_number
-            ];
+    //         // Delete the room
+    //         $deletedRoom = [
+    //             'property_id' => $property_id,
+    //             'room_name' => $room->room_name,
+    //             'floor_number' => $room->floor_number,
+    //             'room_number' => $room->room_number
+    //         ];
             
-            $room->delete();
+    //         $room->delete();
 
-            \DB::commit();
+    //         \DB::commit();
 
-            return response()->json([
-                'message' => 'Room deleted successfully',
-                'deleted_room' => $deletedRoom
-            ], 200);
+    //         return response()->json([
+    //             'message' => 'Room deleted successfully',
+    //             'deleted_room' => $deletedRoom
+    //         ], 200);
 
-        } catch (\Exception $e) {
-            \DB::rollBack();
-            return response()->json([
-                'message' => 'An error occurred while deleting the room',
-                'error' => $e->getMessage(),
-                'search_criteria' => $searchCriteria ?? null
-            ], 500);
-        }
-    }
+    //     } catch (\Exception $e) {
+    //         \DB::rollBack();
+    //         return response()->json([
+    //             'message' => 'An error occurred while deleting the room',
+    //             'error' => $e->getMessage(),
+    //             'search_criteria' => $searchCriteria ?? null
+    //         ], 500);
+    //     }
+    // }
 
     
     public function deleteProperty(Request $request, PropertyDetail $property)
@@ -423,6 +423,7 @@ class PropertyController extends Controller
             ], 401);
         }
     
+        // First validate basic request structure
         $validator = Validator::make($request->all(), [
             'property_name' => 'required|string|max:255',
             'address' => 'required|string',
@@ -450,6 +451,25 @@ class PropertyController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
+        }
+    
+        // Check for duplicate property
+        $existingProperty = PropertyDetail::where('landlord_id', $user->user_id)
+            ->where(function ($query) use ($request) {
+                $query->where('property_name', $request->property_name)
+                    ->where('address', $request->address)
+                    ->where('location', $request->location);
+            })
+            ->first();
+        
+        
+    
+        if ($existingProperty) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'A property with the same name, address, and location already exists for this landlord',
+                'existing_property' => $existingProperty
+            ], 409);
         }
     
         DB::beginTransaction();
