@@ -28,6 +28,9 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::post('/properties-create', [PropertyController::class, 'store']); 
         Route::put('/properties/{property}', [PropertyController::class, 'updateProperty']);
         Route::get('/landlords/properties', [PropertyController::class, 'getPropertiesByLandlord']);
+        Route::get('/landlords/properties/{property_id}', [PropertyController::class, 'getPropertyById']);
+     
+
         // unit management routes
         Route::delete('/properties/{property}/delete-room', [PropertyController::class, 'deleteUnit']);
 

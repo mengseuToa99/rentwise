@@ -53,4 +53,9 @@ class UserDetail extends Authenticatable
     {
         return $this->hasMany(UserSession::class, 'user_id');
     }
+
+    public function hasPermission($permission)
+    {
+        return app(AccessPermission::class)->hasPermission($this, $permission);
+    }
 }

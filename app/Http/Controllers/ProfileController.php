@@ -10,9 +10,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Services\PermissionService;
 
 class ProfileController extends Controller
 {
+    protected $permissionService;
+
+    public function __construct(PermissionService $permissionService) {
+        $this->permissionService = $permissionService;
+    }
+
     /**
      * Display the user's profile form.
      */
@@ -30,6 +37,10 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $request->user()->fill($request->validated());
+
+        if (!$this->permissionService->hasPermission(auth()->user(), 'create_property')) {
+            abort(403, 'You do not have permission to create properties.');
+        }
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;

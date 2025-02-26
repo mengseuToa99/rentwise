@@ -93,6 +93,38 @@ class PropertyController extends Controller
     //     }
     // }
 
+    public function getPropertyById($property_id)
+{
+    $landlordId = Auth::user()->user_id;
+
+    // Validate if the property belongs to the authenticated landlord
+    $property = PropertyDetail::where('landlord_id', $landlordId)
+        ->where('property_id', $property_id)
+        ->with(['images', 'rooms' => function ($query) {
+            $query->withCount(['rentals' => function ($q) {
+                $q->whereNull('end_date'); // Assuming active rentals are those without an end_date
+                // Or if you have a specific column for active status, use that instead
+                // $q->where('rental_status', 'active');
+            }]);
+        }])
+        ->first();
+
+    if (!$property) {
+        return response()->json([
+            'message' => 'Property not found or does not belong to this landlord'
+        ], 404);
+    }
+
+    return response()->json([
+        'property' => $property,
+        'total_rooms' => $property->rooms->count(),
+        'total_occupied_rooms' => $property->rooms->sum('rentals_count')
+    ], 200);
+}
+
+
+    
+
     
     public function deleteProperty(Request $request, PropertyDetail $property)
     {

@@ -1,0 +1,172 @@
+*************************************
+*   insert into permission group    *
+************************ ************
+
+
+INSERT INTO permission_groups (group_name, description, created_at, updated_at) VALUES
+('User Management', 'Manage user accounts and roles', NOW(), NOW()),
+('System Configuration', 'Configure system settings and integrations', NOW(), NOW()),
+('Property Management', 'Manage properties and rooms', NOW(), NOW()),
+('Rental Management', 'Handle rental agreements and payments', NOW(), NOW()),
+('Maintenance Management', 'Manage maintenance requests', NOW(), NOW()),
+('Communication', 'Handle user communications', NOW(), NOW()),
+('Document Management', 'Manage documents and files', NOW(), NOW()),
+('Report & Analytics', 'Generate and view reports', NOW(), NOW()),
+('Integration Management', 'Manage third-party integrations', NOW(), NOW());
+
+
+
+
+************************
+*   insert into role   *
+************************ 
+
+
+
+INSERT INTO roles (role_name, description, parent_role_id, created_at, updated_at) VALUES
+('Admin', 'Full system access', NULL, NOW(), NOW()),
+('Landlord', 'Manages properties and rentals', NULL, NOW(), NOW()),
+('Tenant', 'Rents rooms and submits requests', NULL, NOW(), NOW()),
+('Maintenance Manager', 'Handles maintenance tasks', NULL, NOW(), NOW());
+
+
+
+************************
+*      permission      *
+************************ 
+
+
+*** for admin 
+
+
+-- User Management Group (group_id = 4)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'create_user', 4, 'Create new users', NOW(), NOW()),
+(19, 'edit_user', 4, 'Modify user details', NOW(), NOW()),
+(19, 'delete_user', 4, 'Delete users', NOW(), NOW()),
+(19, 'view_user', 4, 'View user details', NOW(), NOW()),
+(19, 'reset_user_password', 4, 'Reset user passwords', NOW(), NOW()),
+(19, 'manage_user_status', 4, 'Activate, deactivate, or suspend users', NOW(), NOW()),
+(19, 'assign_user_roles', 4, 'Assign roles to users', NOW(), NOW()),
+(19, 'view_user_logs', 4, 'View user activity logs', NOW(), NOW()),
+(19, 'verify_user_documents', 4, 'Verify user documents', NOW(), NOW());
+
+-- System Configuration Group (group_id = 5)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'manage_system_settings', 5, 'Update system-wide settings', NOW(), NOW()),
+(19, 'configure_payment_rules', 5, 'Configure payment rules and policies', NOW(), NOW()),
+(19, 'manage_notification_settings', 5, 'Manage notification preferences', NOW(), NOW()),
+(19, 'view_system_logs', 5, 'View system logs', NOW(), NOW()),
+(19, 'manage_third_party_integrations', 5, 'Manage third-party integrations', NOW(), NOW()),
+(19, 'schedule_maintenance', 5, 'Schedule system maintenance', NOW(), NOW()),
+(19, 'backup_system', 5, 'Backup system data', NOW(), NOW()),
+(19, 'manage_utility_rates', 5, 'Manage utility pricing', NOW(), NOW());
+
+-- Property Management Group (group_id = 6)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'create_property', 6, 'Add new properties', NOW(), NOW()),
+(19, 'edit_property', 6, 'Modify property details', NOW(), NOW()),
+(19, 'delete_property', 6, 'Delete properties', NOW(), NOW()),
+(19, 'view_property', 6, 'View property details', NOW(), NOW()),
+(19, 'manage_room_details', 6, 'Manage room information', NOW(), NOW()),
+(19, 'set_rental_terms', 6, 'Set rental terms and conditions', NOW(), NOW()),
+(19, 'manage_property_images', 6, 'Manage property images', NOW(), NOW()),
+(19, 'view_property_reports', 6, 'View property-related reports', NOW(), NOW()),
+(19, 'manage_utilities', 6, 'Manage utilities for properties', NOW(), NOW());
+
+-- Rental Management Group (group_id = 7)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'create_rental_agreement', 7, 'Create rental agreements', NOW(), NOW()),
+(19, 'edit_rental_agreement', 7, 'Modify rental agreements', NOW(), NOW()),
+(19, 'terminate_rental_agreement', 7, 'Terminate rental agreements', NOW(), NOW()),
+(19, 'manage_rent_calculations', 7, 'Manage rent calculations', NOW(), NOW()),
+(19, 'generate_invoices', 7, 'Generate rental invoices', NOW(), NOW()),
+(19, 'process_payments', 7, 'Process rental payments', NOW(), NOW()),
+(19, 'manage_payment_history', 7, 'Manage payment records', NOW(), NOW()),
+(19, 'handle_late_payments', 7, 'Handle late payment cases', NOW(), NOW()),
+(19, 'view_rental_reports', 7, 'View rental-related reports', NOW(), NOW());
+
+-- Maintenance Management Group (group_id = 8)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'create_maintenance_request', 8, 'Create maintenance requests', NOW(), NOW()),
+(19, 'approve_maintenance_request', 8, 'Approve maintenance requests', NOW(), NOW()),
+(19, 'reject_maintenance_request', 8, 'Reject maintenance requests', NOW(), NOW()),
+(19, 'assign_maintenance_tasks', 8, 'Assign tasks to maintenance staff', NOW(), NOW()),
+(19, 'update_maintenance_status', 8, 'Update maintenance status', NOW(), NOW()),
+(19, 'view_maintenance_history', 8, 'View maintenance history', NOW(), NOW()),
+(19, 'schedule_maintenance', 8, 'Schedule maintenance tasks', NOW(), NOW()),
+(19, 'generate_maintenance_reports', 8, 'Generate maintenance reports', NOW(), NOW());
+
+-- Communication Group (group_id = 9)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'send_messages', 9, 'Send messages to users', NOW(), NOW()),
+(19, 'read_messages', 9, 'Read received messages', NOW(), NOW()),
+(19, 'delete_messages', 9, 'Delete messages', NOW(), NOW()),
+(19, 'manage_notifications', 9, 'Manage system notifications', NOW(), NOW()),
+(19, 'send_bulk_notifications', 9, 'Send notifications to multiple users', NOW(), NOW()),
+(19, 'manage_announcements', 9, 'Manage system announcements', NOW(), NOW()),
+(19, 'view_communication_history', 9, 'View communication logs', NOW(), NOW());
+
+-- Document Management Group (group_id = 10)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'upload_documents', 10, 'Upload documents to the system', NOW(), NOW()),
+(19, 'view_documents', 10, 'View uploaded documents', NOW(), NOW()),
+(19, 'delete_documents', 10, 'Delete documents', NOW(), NOW()),
+(19, 'share_documents', 10, 'Share documents with users', NOW(), NOW()),
+(19, 'generate_documents', 10, 'Generate documents (e.g., contracts)', NOW(), NOW()),
+(19, 'manage_document_templates', 10, 'Manage document templates', NOW(), NOW()),
+(19, 'archive_documents', 10, 'Archive old documents', NOW(), NOW());
+
+-- Report & Analytics Group (group_id = 11)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'view_financial_reports', 11, 'View financial reports', NOW(), NOW()),
+(19, 'generate_custom_reports', 11, 'Generate custom reports', NOW(), NOW()),
+(19, 'export_reports', 11, 'Export reports to external formats', NOW(), NOW()),
+(19, 'view_analytics_dashboard', 11, 'View analytics dashboard', NOW(), NOW()),
+(19, 'manage_report_schedules', 11, 'Schedule automated reports', NOW(), NOW()),
+(19, 'share_reports', 11, 'Share reports with users', NOW(), NOW()),
+(19, 'view_audit_logs', 11, 'View system audit logs', NOW(), NOW());
+
+-- Integration Management Group (group_id = 12)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(19, 'manage_payment_integrations', 12, 'Manage payment gateway integrations', NOW(), NOW()),
+(19, 'manage_accounting_integrations', 12, 'Manage accounting software integrations', NOW(), NOW()),
+(19, 'configure_api_settings', 12, 'Configure API settings', NOW(), NOW()),
+(19, 'view_integration_logs', 12, 'View integration logs', NOW(), NOW()),
+(19, 'manage_webhooks', 12, 'Manage webhooks for integrations', NOW(), NOW()),
+(19, 'test_integrations', 12, 'Test third-party integrations', NOW(), NOW());
+
+
+*** for landlord 
+
+
+-- Property Management Group (group_id = 6)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(21, 'view_property', 6, 'View property details', '2025-02-23 13:32:34', '2025-02-23 13:32:34'),
+(21, 'view_room_details', 6, 'View room information', '2025-02-23 13:32:34', '2025-02-23 13:32:34');
+
+-- Rental Management Group (group_id = 7)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(21, 'view_rental_agreement', 7, 'View rental agreements', '2025-02-23 13:32:34', '2025-02-23 13:32:34'),
+(21, 'view_invoices', 7, 'View rent invoices', '2025-02-23 13:32:34', '2025-02-23 13:32:34'),
+(21, 'make_payments', 7, 'Pay rent online', '2025-02-23 13:32:34', '2025-02-23 13:32:34');
+
+-- Maintenance Management Group (group_id = 8)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(21, 'create_maintenance_request', 8, 'Submit maintenance requests', '2025-02-23 13:32:34', '2025-02-23 13:32:34'),
+(21, 'view_maintenance_status', 8, 'Track request progress', '2025-02-23 13:32:34', '2025-02-23 13:32:34');
+
+-- Communication Group (group_id = 9)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(21, 'send_messages', 9, 'Message landlord or manager', '2025-02-23 13:32:34', '2025-02-23 13:32:34'),
+(21, 'read_messages', 9, 'Read received messages', '2025-02-23 13:32:34', '2025-02-23 13:32:34'),
+(21, 'view_announcements', 9, 'View property announcements', '2025-02-23 13:32:34', '2025-02-23 13:32:34');
+
+-- Document Management Group (group_id = 10)
+INSERT INTO access_permissions (role_id, permission_name, group_id, description, created_at, updated_at) VALUES
+(21, 'view_documents', 10, 'View lease agreements', '2025-02-23 13:32:34', '2025-02-23 13:32:34'),
+(21, 'upload_documents', 10, 'Upload proof of payment or IDs', '2025-02-23 13:32:34', '2025-02-23 13:32:34');
+
+
+*** Maintenance Manager
+
