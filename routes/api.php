@@ -56,6 +56,9 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::post('/permissions', [AccessPermissionController::class, 'store']);
         Route::put('/permissions/{id}', [AccessPermissionController::class, 'update']);
         Route::delete('/permissions/{id}', [AccessPermissionController::class, 'destroy']);
+
+
+        
         
 
     //     Route::get('/properties', 'PropertyController@index')

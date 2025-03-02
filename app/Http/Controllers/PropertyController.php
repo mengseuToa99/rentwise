@@ -96,25 +96,57 @@ class PropertyController extends Controller
     public function getPropertyById($property_id)
     {
         $landlordId = Auth::user()->user_id;
-
+    
         // Validate if the property belongs to the authenticated landlord
         $property = PropertyDetail::where('landlord_id', $landlordId)
             ->where('property_id', $property_id)
             ->with(['images', 'rooms' => function ($query) {
                 $query->withCount(['rentals' => function ($q) {
-                    $q->whereNull('end_date'); 
+                    $q->whereNull('end_date'); // Assuming active rentals are those without an end_date
                 }]);
             }])
+            ->with(['rooms.utilityUsage.utility', 'rooms.utilityUsage.utilityPrice'])
             ->first();
-
+    
         if (!$property) {
             return response()->json([
                 'message' => 'Property not found or does not belong to this landlord'
             ], 404);
         }
-
+    
+        // Format the response to include utility details
+        $formattedRooms = $property->rooms->map(function ($room) {
+            $formattedUtilities = $room->utilityUsage->map(function ($usage) {
+                return [
+                    'utility_name' => $usage->utility->utility_name,
+                    'price_unit' => $usage->utilityPrice->price,
+                    'usage_date' => $usage->usage_date,
+                    'amount_used' => $usage->amount_used,
+                ];
+            });
+    
+            return [
+                'room_id' => $room->room_id,
+                'room_number' => $room->room_number,
+                'room_type' => $room->room_type,
+                'available' => $room->available,
+                'rent_amount' => $room->rent_amount,
+                'utilities' => $formattedUtilities,
+            ];
+        });
+    
         return response()->json([
-            'property' => $property,
+            'property' => [
+                'property_id' => $property->property_id,
+                'property_name' => $property->property_name,
+                'address' => $property->address,
+                'location' => $property->location,
+                'total_floors' => $property->total_floors,
+                'total_rooms' => $property->total_rooms,
+                'description' => $property->description,
+                'images' => $property->images,
+                'rooms' => $formattedRooms,
+            ],
             'total_rooms' => $property->rooms->count(),
             'total_occupied_rooms' => $property->rooms->sum('rentals_count')
         ], 200);
