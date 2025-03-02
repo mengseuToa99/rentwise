@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessPermissionController;
 use App\Http\Controllers\PermissionGroupController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\RentalController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\UnitController;
@@ -56,6 +57,10 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::post('/permissions', [AccessPermissionController::class, 'store']);
         Route::put('/permissions/{id}', [AccessPermissionController::class, 'update']);
         Route::delete('/permissions/{id}', [AccessPermissionController::class, 'destroy']);
+
+
+        // Rentail controller
+        Route::post('/rentail', [RentalController::class, 'store']);
 
         
 

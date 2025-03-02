@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\RentalDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
@@ -19,10 +20,7 @@ class RentalController extends Controller
             'landlord_id' => 'required|exists:user_detail,user_id',
             'tenant_id' => 'required|exists:user_detail,user_id',
             'room_id' => 'required|exists:room_detail,room_id',
-
-            'permission_name' => 'required|string',
-            'description' => 'nullable|string',
-            'group_id' => 'required|exists:permission_groups,group_id'
+            'start_date' => 'required|date'
         ]);
 
         if ($validator->fails()) {
@@ -33,7 +31,7 @@ class RentalController extends Controller
         }
 
         try {
-            $permission = AccessPermission::create($request->all());
+            $permission = RentalDetail::create($request->all());
             return response()->json([
                 'status' => 'success',
                 'message' => 'Permission created successfully',
