@@ -1,5 +1,6 @@
-// resources/js/services/api/types/property.ts
+// Update your PropertyFormData interface
 export interface PropertyFormData {
+  property_id: number;
   property_name: string;
   address: string;
   location: string;
@@ -8,44 +9,41 @@ export interface PropertyFormData {
     utility_name: string;
     description: string;
     price: number;
+    isDefault?: boolean;
   }[];
-  rooms: {
-    floor_number: number;
-    room_number: number;
-    description: string;
-    room_type: string;
-    rent_amount: number;
-    utility_readings: {
-      utility_name: string;
-      reading: number;
-    }[];
-    due_date: string;
-    available: boolean;
-  }[];
+  rooms: Room[];
 }
 
+// Update Room interface to match your API and form handling
 export interface Room {
-  room_id: number;
+  room_id?: number;
   floor_number: number;
   room_number: number;
   description: string;
   room_type: string;
   rent_amount: number;
-  electricity_reading: number;
-  water_reading: number;
-  due_date: string; // ISO date string
+  utility_readings: UtilityReading[];
+  due_date: string;
   available: boolean;
 }
 
-// If you need to match your form's unit structure exactly:
+// Add a new interface for utility readings
+export interface UtilityReading {
+  utility_name: string;
+  reading: number;
+}
+
+// Keep UnitFormValues for form handling if needed
 export interface UnitFormValues {
   unitNumber: number;
-  unitDescrption: string;
+  unitDescription: string; // Fixed typo from "unitDescrption"
   roomType: string;
   unitPrice: string;
-  electricityReading: string;
-  waterReading: string;
-  roomDueDate: Date;
   floor: number;
   available: boolean;
+  roomDueDate: Date;
+  utilityReadings: {
+    utility_name: string;
+    reading: string;
+  }[];
 }

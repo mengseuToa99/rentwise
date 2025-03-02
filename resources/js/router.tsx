@@ -11,6 +11,7 @@ import Profile from './Pages/Profile';
 import Setting from './Pages/Setting';
 import Report from './Pages/Report';
 import Maintenance from './Pages/Maintenance';
+import EditProperty from './Pages/EditProperty';
 
 const AppRouter: React.FC = () => {
     return (
@@ -28,6 +29,7 @@ const AppRouter: React.FC = () => {
                 <Route path="/setting" element={<Setting />} />
                 <Route path="/report" element={<Report />} />
                 <Route path="/maintenance" element={<Maintenance />} />
+                <Route path="/property/editProperty/:id" element={<EditProperty />} />
                 {/* <Route path="*" element={<NotFoundPage />} /> */}
             </Routes>
         </Router>

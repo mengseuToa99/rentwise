@@ -1,3 +1,4 @@
+// UnitForm.tsx
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,7 @@ interface UnitFormProps {
   index: number;
   remove: (index: number) => void;
   roomTypePrices?: RoomTypePrice[];
-  utilities: Array<{ utility_name: string }>;
+  utilities: Array<{ utility_name: string; isDefault?: boolean }>;
 }
 
 const UnitForm: React.FC<UnitFormProps> = ({
@@ -87,8 +88,10 @@ const UnitForm: React.FC<UnitFormProps> = ({
                 <FormLabel>Unit Number</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={field.value?.toString() || "Unit Number"}
-                    readOnly
+                    type="number"
+                    placeholder="Unit Number"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -166,26 +169,28 @@ const UnitForm: React.FC<UnitFormProps> = ({
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          {utilities.map((utility, utilityIndex) => (
-            <FormField
-              key={utility.utility_name}
-              control={control}
-              name={`units[${index}].utilityReadings.${utilityIndex}.reading`}
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>{utility.utility_name} Reading</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number"
-                      placeholder={`Enter ${utility.utility_name} Reading`}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          ))}
+          {utilities
+            .filter(utility => utility.isDefault)
+            .map((utility, utilityIndex) => (
+              <FormField
+                key={utility.utility_name}
+                control={control}
+                name={`units[${index}].utilityReadings.${utilityIndex}.reading`}
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>{utility.utility_name} Reading</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        placeholder={`Enter ${utility.utility_name} Reading`}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
 
           <FormField
             control={control}

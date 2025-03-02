@@ -6,19 +6,27 @@ export const propertyService = {
     const response = await api.post("/rentwise/properties-create", propertyData);
     return response.data;
   },
-  // Add this method for fetching properties:
+
   getProperties: async (landlordId: number) => {
     const response = await api.get(`/rentwise/landlords/properties`);
     return response.data;
   },
 
-  // Delete a property
+  getProperty: async (propertyId: number): Promise<any> => {
+    try {
+      const response = await api.get(`/rentwise/landlords/properties/${propertyId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching property:", error);
+      throw error;
+    }
+  },
+
   deleteProperty: async (propertyId: number) => {
     const response = await api.delete(`/rentwise/properties/${propertyId}`);
     return response.data;
   },
 
-  // Delete a room
   deleteRoom: async (data: {
     propertyId: number;
     floorNumber: number;
@@ -33,6 +41,11 @@ export const propertyService = {
         }
       }
     );
+    return response.data;
+  },
+
+  updateProperty: async (propertyId: number, propertyData: any) => {
+    const response = await api.put(`/rentwise/properties/${propertyId}`, propertyData);
     return response.data;
   },
 };

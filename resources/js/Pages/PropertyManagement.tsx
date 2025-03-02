@@ -66,9 +66,12 @@ const PropertyManagement: React.FC = () => {
   }, []);
 
   const handleDeleteProperty = async (propertyId: number) => {
+    const propertyIndex = properties.findIndex(p => p.property_id === propertyId);
+    if (propertyIndex === -1) return;
+
+    const propertyToDelete = properties[propertyIndex];
     const originalProperties = [...properties];
-    const property = properties.find(p => p.property_id === propertyId);
-    
+
     // Optimistic update
     setProperties(prev => prev.filter(p => p.property_id !== propertyId));
 
@@ -77,11 +80,9 @@ const PropertyManagement: React.FC = () => {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="font-medium">Property deleted</span>
-            {property && (
-              <span className="text-muted-foreground">
-                {property.property_name}
-              </span>
-            )}
+            <span className="text-muted-foreground">
+              {propertyToDelete.property_name}
+            </span>
           </div>
           <p className="mt-1 text-muted-foreground">
             This action can be undone within 5 seconds
@@ -92,7 +93,11 @@ const PropertyManagement: React.FC = () => {
           variant="outline"
           className="h-8"
           onClick={() => {
-            setProperties(originalProperties);
+            setProperties(prev => [
+              ...prev.slice(0, propertyIndex),
+              propertyToDelete,
+              ...prev.slice(propertyIndex)
+            ]);
             toast.dismiss(t);
           }}
         >
@@ -118,17 +123,23 @@ const PropertyManagement: React.FC = () => {
   };
 
   const handleDeleteUnit = async (propertyId: number, roomId: number) => {
-    const originalProperties = [...properties];
-    const property = properties.find(p => p.property_id === propertyId);
-    const roomToDelete = property?.rooms.find(r => r.room_id === roomId);
+    const propertyIndex = properties.findIndex(p => p.property_id === propertyId);
+    if (propertyIndex === -1) return;
 
-    if (!property || !roomToDelete) return;
+    const roomIndex = properties[propertyIndex].rooms.findIndex(r => r.room_id === roomId);
+    if (roomIndex === -1) return;
+
+    // Create deep copy for restoration
+    const originalProperties = JSON.parse(JSON.stringify(properties));
+    const roomToDelete = originalProperties[propertyIndex].rooms[roomIndex];
 
     // Optimistic update
-    setProperties(prev => prev.map(p => ({
-      ...p,
-      rooms: p.rooms.filter(r => r.room_id !== roomId)
-    })));
+    setProperties(prev => prev.map(p => 
+      p.property_id === propertyId ? {
+        ...p,
+        rooms: p.rooms.filter(r => r.room_id !== roomId)
+      } : p
+    ));
 
     toast.custom((t) => (
       <div className="flex items-center w-full max-w-sm gap-4 p-4 text-sm border rounded-lg bg-background">
@@ -148,7 +159,16 @@ const PropertyManagement: React.FC = () => {
           variant="outline"
           className="h-8"
           onClick={() => {
-            setProperties(originalProperties);
+            setProperties(prev => prev.map(p => 
+              p.property_id === propertyId ? {
+                ...p,
+                rooms: [
+                  ...p.rooms.slice(0, roomIndex),
+                  roomToDelete,
+                  ...p.rooms.slice(roomIndex)
+                ]
+              } : p
+            ));
             toast.dismiss(t);
           }}
         >
@@ -252,6 +272,14 @@ const PropertyManagement: React.FC = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
+                        <DropdownMenuItem asChild>
+                          <a
+                            href={`${window.location.pathname}/editProperty/${property.property_id}`}
+                            className="w-full cursor-pointer"
+                          >
+                            Edit Property
+                          </a>
+                        </DropdownMenuItem>
                         <DropdownMenuItem 
                           onSelect={() => handleDeleteProperty(property.property_id)}
                         >
@@ -306,7 +334,15 @@ const PropertyManagement: React.FC = () => {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem asChild>
+                                    <a
+                                      href={`${window.location.pathname}/editUnit/${unit.room_id}`}
+                                      className="w-full cursor-pointer"
+                                    >
+                                      Edit Unit
+                                    </a>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
                                     onSelect={() => handleDeleteUnit(property.property_id, unit.room_id)}
                                   >
                                     Delete Unit

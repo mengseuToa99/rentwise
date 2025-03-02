@@ -1,3 +1,4 @@
+// AddProperty.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -38,6 +39,7 @@ const utilitySchema = z.object({
   utility_name: z.string().min(1, "Utility name is required"),
   description: z.string().min(1, "Description is required"),
   price: z.string().min(1, "Price is required"),
+  isDefault: z.boolean().default(false),
 });
 
 const unitSchema = z.object({
@@ -61,7 +63,7 @@ const formSchema = z.object({
   description: z.string().min(1, { message: "Description is required." }),
   address: z.string().min(1, { message: "Address is required." }),
   location: z.string().min(1, { message: "Location is required." }),
-  utilities: z.array(utilitySchema).min(1, "At least one utility is required"),
+  utilities: z.array(utilitySchema).min(2, "Default utilities are required"),
   units: z.array(unitSchema),
 });
 
@@ -81,7 +83,20 @@ const AddProperty: React.FC = () => {
       description: "",
       address: "",
       location: "",
-      utilities: [],
+      utilities: [
+        {
+          utility_name: "Water",
+          description: "Water utility",
+          price: "",
+          isDefault: true
+        },
+        {
+          utility_name: "Electricity",
+          description: "Electricity utility",
+          price: "",
+          isDefault: true
+        },
+      ],
       units: [],
     },
   });
@@ -102,9 +117,26 @@ const AddProperty: React.FC = () => {
     }
   }, [isRoomTypeDialogOpen, roomTypePrices.length]);
 
+  useEffect(() => {
+    const units = form.getValues("units");
+    const utilities = form.getValues("utilities");
+
+    if (units.length > 0) {
+      const updatedUnits = units.map(unit => ({
+        ...unit,
+        utilityReadings: utilities.map(utility => ({
+          utility_name: utility.utility_name,
+          reading: unit.utilityReadings.find(
+            ur => ur.utility_name === utility.utility_name
+          )?.reading || "0"
+        }))
+      }));
+
+      replace(updatedUnits);
+    }
+  }, [utilityFields, form, replace]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log("Form submission started", values);
-    
     try {
       const payload: PropertyFormData = {
         property_name: values.propertyName,
@@ -115,6 +147,7 @@ const AddProperty: React.FC = () => {
           utility_name: utility.utility_name,
           description: utility.description,
           price: parseFloat(utility.price),
+          isDefault: utility.isDefault,
         })),
         rooms: values.units.map(unit => ({
           floor_number: unit.floor,
@@ -131,14 +164,10 @@ const AddProperty: React.FC = () => {
         }))
       };
 
-      console.log("Payload:", payload);
-      
       const data = await propertyService.createProperty(payload);
       toast.success("Property created successfully!");
-      console.log("API response:", data);
     } catch (error: any) {
-      console.error("Submission error:", error);
-      const errorMessage = error.response?.data?.message || "Failed to create property. Please check all fields.";
+      const errorMessage = error.response?.data?.message || "Failed to create property.";
       toast.error(errorMessage);
     }
   };
@@ -203,7 +232,6 @@ const AddProperty: React.FC = () => {
   };
 
   const handleSaveRoomTypePrices = () => {
-    console.log("Room Type Price Entries:", roomTypePrices);
     setIsRoomTypeDialogOpen(false);
   };
 
@@ -214,7 +242,6 @@ const AddProperty: React.FC = () => {
         <div className="border p-4 sm:p-8 rounded-lg">
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Property Details Fields */}
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row gap-4">
                   <FormField
@@ -224,7 +251,7 @@ const AddProperty: React.FC = () => {
                       <FormItem className="flex-1">
                         <FormLabel>Property Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter Your Property Name" {...field} />
+                          <Input placeholder="Enter Property Name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -237,7 +264,7 @@ const AddProperty: React.FC = () => {
                       <FormItem className="flex-1">
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter Description Of Your Property" {...field} />
+                          <Input placeholder="Property Description" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -245,79 +272,6 @@ const AddProperty: React.FC = () => {
                   />
                 </div>
 
-                {/* Utilities Management */}
-                <div className="border-t pt-4">
-                  <div className="flex items-center gap-4 mb-4">
-                    <Dialog open={isUtilityDialogOpen} onOpenChange={setIsUtilityDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button type="button">Manage Utilities</Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Manage Utilities</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          {utilityFields.map((field, index) => (
-                            <div key={field.id} className="flex gap-4 items-center">
-                              <div className="flex-1 space-y-2">
-                                <FormField
-                                  control={form.control}
-                                  name={`utilities.${index}.utility_name`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormControl>
-                                        <Input placeholder="Utility Name" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              <div className="flex-1 space-y-2">
-                                <FormField
-                                  control={form.control}
-                                  name={`utilities.${index}.price`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormControl>
-                                        <Input placeholder="Price" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              <Button
-                                variant="destructive"
-                                onClick={() => removeUtility(index)}
-                                className="mt-2"
-                              >
-                                <Trash size={16} />
-                              </Button>
-                            </div>
-                          ))}
-                          <Button
-                            type="button"
-                            onClick={() => appendUtility({ 
-                              utility_name: "", 
-                              description: "Utility description",
-                              price: "" 
-                            })}
-                          >
-                            Add Utility
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  {form.formState.errors.utilities && (
-                    <p className="text-sm font-medium text-destructive">
-                      {form.formState.errors.utilities.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Address and Location Row */}
                 <div className="flex flex-col sm:flex-row gap-4">
                   <FormField
                     control={form.control}
@@ -345,6 +299,118 @@ const AddProperty: React.FC = () => {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Utilities Section */}
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex-1 grid grid-cols-2 gap-4">
+                      {utilityFields.map((field, index) => (
+                        field.isDefault && (
+                          <FormField
+                            key={field.id}
+                            control={form.control}
+                            name={`utilities.${index}.price`}
+                            render={({ field: formField }) => (
+                              <FormItem>
+                                <FormLabel>{field.utility_name} Price</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...formField}
+                                    type="number"
+                                    placeholder={`${field.utility_name} Price`}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )
+                      ))}
+                    </div>
+                    <div className="self-end">
+                      <Dialog open={isUtilityDialogOpen} onOpenChange={setIsUtilityDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button type="button" className="whitespace-nowrap">
+                            Add Additional Utilities
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Additional Utilities</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            {utilityFields.map((field, index) => (
+                              !field.isDefault && (
+                                <div key={field.id} className="flex gap-4 items-center">
+                                  <div className="flex-1 space-y-2">
+                                    <FormField
+                                      control={form.control}
+                                      name={`utilities.${index}.utility_name`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormControl>
+                                            <Input
+                                              placeholder="Utility Name"
+                                              {...field}
+                                              autoFocus
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+                                  <div className="flex-1 space-y-2">
+                                    <FormField
+                                      control={form.control}
+                                      name={`utilities.${index}.price`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormControl>
+                                            <Input
+                                              placeholder="Price"
+                                              {...field}
+                                              type="number"
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => removeUtility(index)}
+                                    className="mt-2"
+                                  >
+                                    <Trash size={16} />
+                                  </Button>
+                                </div>
+                              )
+                            ))}
+                            <Button
+                              type="button"
+                              onClick={() => appendUtility({
+                                utility_name: "",
+                                description: "Additional utility",
+                                price: "",
+                                isDefault: false
+                              })}
+                              className="w-full"
+                            >
+                              Add New Utility
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                  {form.formState.errors.utilities && (
+                    <p className="text-sm font-medium text-destructive">
+                      {form.formState.errors.utilities.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
