@@ -29,12 +29,12 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::put('/properties/{property}', [PropertyController::class, 'updateProperty']);
         Route::get('/landlords/properties', [PropertyController::class, 'getPropertiesByLandlord']);
         Route::get('/landlords/properties/{property_id}', [PropertyController::class, 'getPropertyById']);
-     
 
         // unit management routes
         Route::delete('/properties/{property}/delete-room', [PropertyController::class, 'deleteUnit']);
 
         //calculate unit
+        Route::get('/{roomId}/utility-usage', [UnitController::class, 'getUtilityUsageByRoom']);
         Route::get('/properties/get-due-unit', [UnitController::class, 'getDueRooms']);
         Route::post('/properties/unit/calculation', [UnitController::class, 'calculateUtilityUsage']);
         Route::put('/unit-update', [UnitController::class, 'updateUtilityUsage']);
@@ -58,6 +58,12 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::delete('/permissions/{id}', [AccessPermissionController::class, 'destroy']);
         
 
+    //     Route::get('/properties', 'PropertyController@index')
+    // ->middleware('permission:view_property');
 
+    // Route::get('/system/settings', 'SystemController@settings')
+    // ->middleware('permission:manage_system_settings');
+
+    
     });
 }); 

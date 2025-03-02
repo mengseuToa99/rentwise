@@ -19,7 +19,7 @@ class PropertyController extends Controller
     // {
     //     // First find the property
     //     $property = PropertyDetail::where('property_id', $property_id)->first();
-        
+
     //     if (!$property) {
     //         return response()->json([
     //             'message' => 'Property not found',
@@ -73,7 +73,7 @@ class PropertyController extends Controller
     //             'floor_number' => $room->floor_number,
     //             'room_number' => $room->room_number
     //         ];
-            
+
     //         $room->delete();
 
     //         \DB::commit();
@@ -94,38 +94,33 @@ class PropertyController extends Controller
     // }
 
     public function getPropertyById($property_id)
-{
-    $landlordId = Auth::user()->user_id;
+    {
+        $landlordId = Auth::user()->user_id;
 
-    // Validate if the property belongs to the authenticated landlord
-    $property = PropertyDetail::where('landlord_id', $landlordId)
-        ->where('property_id', $property_id)
-        ->with(['images', 'rooms' => function ($query) {
-            $query->withCount(['rentals' => function ($q) {
-                $q->whereNull('end_date'); // Assuming active rentals are those without an end_date
-                // Or if you have a specific column for active status, use that instead
-                // $q->where('rental_status', 'active');
-            }]);
-        }])
-        ->first();
+        // Validate if the property belongs to the authenticated landlord
+        $property = PropertyDetail::where('landlord_id', $landlordId)
+            ->where('property_id', $property_id)
+            ->with(['images', 'rooms' => function ($query) {
+                $query->withCount(['rentals' => function ($q) {
+                    $q->whereNull('end_date'); 
+                }]);
+            }])
+            ->first();
 
-    if (!$property) {
+        if (!$property) {
+            return response()->json([
+                'message' => 'Property not found or does not belong to this landlord'
+            ], 404);
+        }
+
         return response()->json([
-            'message' => 'Property not found or does not belong to this landlord'
-        ], 404);
+            'property' => $property,
+            'total_rooms' => $property->rooms->count(),
+            'total_occupied_rooms' => $property->rooms->sum('rentals_count')
+        ], 200);
     }
 
-    return response()->json([
-        'property' => $property,
-        'total_rooms' => $property->rooms->count(),
-        'total_occupied_rooms' => $property->rooms->sum('rentals_count')
-    ], 200);
-}
 
-
-    
-
-    
     public function deleteProperty(Request $request, PropertyDetail $property)
     {
         // Check if the property belongs to the authenticated landlord
@@ -447,14 +442,14 @@ class PropertyController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-    
+
         if (!$user) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'User not authenticated'
             ], 401);
         }
-    
+
         // First validate basic request structure
         $validator = Validator::make($request->all(), [
             'property_name' => 'required|string|max:255',
@@ -477,14 +472,14 @@ class PropertyController extends Controller
             'rooms.*.due_date' => 'required|date',
             'rooms.*.available' => 'required|boolean'
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
-    
+
         // Check for duplicate property
         $existingProperty = PropertyDetail::where('landlord_id', $user->user_id)
             ->where(function ($query) use ($request) {
@@ -493,9 +488,9 @@ class PropertyController extends Controller
                     ->where('location', $request->location);
             })
             ->first();
-        
-        
-    
+
+
+
         if ($existingProperty) {
             return response()->json([
                 'status' => 'error',
@@ -503,7 +498,7 @@ class PropertyController extends Controller
                 'existing_property' => $existingProperty
             ], 409);
         }
-    
+
         DB::beginTransaction();
         try {
             // Create property
@@ -516,7 +511,7 @@ class PropertyController extends Controller
                 'total_floors' => max(array_column($request->rooms, 'floor_number')),
                 'total_rooms' => count($request->rooms)
             ]);
-    
+
             // Create or find utilities and their prices
             $utilities = [];
             foreach ($request->utilities as $utilityData) {
@@ -524,17 +519,17 @@ class PropertyController extends Controller
                     ['utility_name' => $utilityData['utility_name']],
                     ['description' => $utilityData['description']]
                 );
-    
+
                 // Create new utility price record
                 UtilityPrice::create([
                     'utility_id' => $utility->utility_id,
                     'price' => $utilityData['price'],
                     'effective_date' => now()
                 ]);
-    
+
                 $utilities[$utilityData['utility_name']] = $utility;
             }
-    
+
             // Create rooms and their utility readings
             foreach ($request->rooms as $roomData) {
                 $room = new RoomDetail([
@@ -552,16 +547,16 @@ class PropertyController extends Controller
                     'due_date' => $roomData['due_date'],
                     'available' => $roomData['available']
                 ]);
-    
+
                 $property->rooms()->save($room);
-    
+
                 // Create utility usage records for each utility
                 foreach ($roomData['utility_readings'] as $reading) {
                     $utility = $utilities[$reading['utility_name']] ?? null;
                     if (!$utility) {
                         throw new \Exception("Utility {$reading['utility_name']} not found");
                     }
-    
+
                     UtilityUsage::create([
                         'room_id' => $room->room_id,
                         'utility_id' => $utility->utility_id,
@@ -572,7 +567,7 @@ class PropertyController extends Controller
                     ]);
                 }
             }
-    
+
             DB::commit();
             return response()->json([
                 'property' => $property->load('rooms'),
@@ -594,6 +589,7 @@ class PropertyController extends Controller
     public function getPropertiesByLandlord()
     {
         $landlordId = Auth::user()->user_id;
+    
         // Validate if the landlord exists
         $properties = PropertyDetail::where('landlord_id', $landlordId)
             ->with(['images', 'rooms' => function ($query) {
@@ -603,16 +599,51 @@ class PropertyController extends Controller
                     // $q->where('rental_status', 'active');
                 }]);
             }])
+            ->with(['rooms.utilityUsage.utility', 'rooms.utilityUsage.utilityPrice'])
             ->get();
-
+    
         if ($properties->isEmpty()) {
             return response()->json([
                 'message' => 'No properties found for this landlord'
             ], 404);
         }
-
+    
+        // Format the response to include utility name and price unit
+        $formattedProperties = $properties->map(function ($property) {
+            $formattedRooms = $property->rooms->map(function ($room) {
+                $formattedUtilities = $room->utilityUsage->map(function ($usage) {
+                    return [
+                        'utility_name' => $usage->utility->utility_name,
+                        'price_unit' => $usage->utilityPrice->price,
+                        'usage_date' => $usage->usage_date,
+                        'amount_used' => $usage->amount_used,
+                    ];
+                });
+    
+                return [
+                    'room_id' => $room->room_id,
+                    'room_number' => $room->room_number,
+                    'room_type' => $room->room_type,
+                    'available' => $room->available,
+                    'rent_amount' => $room->rent_amount,
+                    'utilities' => $formattedUtilities,
+                ];
+            });
+    
+            return [
+                'property_id' => $property->property_id,
+                'property_name' => $property->property_name,
+                'address' => $property->address,
+                'location' => $property->location,
+                'total_floors' => $property->total_floors,
+                'total_rooms' => $property->total_rooms,
+                'description' => $property->description,
+                'rooms' => $formattedRooms,
+            ];
+        });
+    
         return response()->json([
-            'properties' => $properties,
+            'properties' => $formattedProperties,
             'total_properties' => $properties->count(),
             'total_rooms' => $properties->sum(function ($property) {
                 return $property->rooms->count();

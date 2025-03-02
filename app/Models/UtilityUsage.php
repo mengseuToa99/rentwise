@@ -19,4 +19,11 @@ class UtilityUsage extends Model
     {
         return $this->belongsTo(Utility::class, 'utility_id');
     }
+
+    public function utilityPrice()
+    {
+        return $this->belongsTo(UtilityPrice::class, 'utility_id', 'utility_id')
+            ->where('effective_date', '<=', now()) // Ensure the price is effective
+            ->orderBy('effective_date', 'desc'); // Get the latest price
+    }
 }

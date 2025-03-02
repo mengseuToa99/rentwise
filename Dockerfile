@@ -36,11 +36,14 @@ COPY composer.json composer.lock ./
 # Install Composer dependencies
 RUN composer install --no-scripts --no-autoloader
 
+
 # Copy the rest of the application code
 COPY . .
 
 # Generate optimized autoloader
 RUN composer dump-autoload --optimize
+
+
 
 # After your COPY statements:
 RUN chown -R www-data:www-data /var/www \

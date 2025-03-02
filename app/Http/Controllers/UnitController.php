@@ -17,6 +17,70 @@ use Illuminate\Validation\ValidationException;
 class UnitController extends Controller
 {
 
+    public function getUtilityUsageByRoom($roomId)
+    {
+        try {
+            // Verify room ownership (ensure the room belongs to a property owned by the authenticated landlord)
+            $user = Auth::user()->user_id;
+            $room = RoomDetail::where('room_id', $roomId)
+                ->with(['property' => function ($query) use ($user) {
+                    $query->where('landlord_id', $user);
+                }])
+                ->with(['utilityUsage.utility', 'utilityUsage.utilityPrice'])
+                ->first();
+    
+            if (!$room || !$room->property) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Room not found or unauthorized access'
+                ], 403);
+            }
+    
+            $results = [
+                'room_id' => $room->room_id,
+                'room_number' => $room->room_number,
+                'floor_number' => $room->floor_number,
+                'utilities' => []
+            ];
+    
+            $roomTotal = 0;
+    
+            foreach ($room->utilityUsage as $usage) {
+                $utilityName = $usage->utility->utility_name;
+                $pricePerUnit = $usage->utilityPrice->price;
+                $amountUsed = $usage->amount_used;
+                $billAmount = $amountUsed * $pricePerUnit;
+    
+                $results['utilities'][] = [
+                    'utility_name' => $utilityName,
+                    'old_reading' => $usage->old_meter_reading,
+                    'new_reading' => $usage->new_meter_reading,
+                    'amount_used' => $amountUsed,
+                    'price_per_unit' => $pricePerUnit,
+                    'bill_amount' => $billAmount,
+                    'usage_date' => $usage->usage_date
+                ];
+    
+                $roomTotal += $billAmount;
+            }
+    
+            $results['total_bill'] = $roomTotal;
+    
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Utility usage and price retrieved successfully',
+                'data' => $results
+            ], 200);
+    
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function updateUtilityUsage(Request $request)
     {
         try {
