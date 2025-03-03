@@ -8,7 +8,7 @@ use App\Models\RentalDetail;
 use App\Services\RentalService;
 use Illuminate\Http\JsonResponse;
 
-class RentalController extends Controller
+class InvoiceController extends Controller
 {
     protected $rentalService;
 

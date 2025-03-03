@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('room_id');
             $table->timestamp('start_date');
             $table->timestamp('end_date')->nullable();
-            $table->string('lease_agreement');
+            $table->string('lease_agreement')->nullable();
             $table->timestamps();
     
             $table->foreign('landlord_id')->references('user_id')->on('user_detail')->onDelete('cascade');

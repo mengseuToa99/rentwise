@@ -615,20 +615,15 @@ class PropertyController extends Controller
     }
 
 
-    /**
-     * Display the specified property.
-     */
     public function getPropertiesByLandlord()
     {
         $landlordId = Auth::user()->user_id;
     
-        // Validate if the landlord exists
+        // Fetch properties with relationships
         $properties = PropertyDetail::where('landlord_id', $landlordId)
             ->with(['images', 'rooms' => function ($query) {
                 $query->withCount(['rentals' => function ($q) {
-                    $q->whereNull('end_date'); // Assuming active rentals are those without an end_date
-                    // Or if you have a specific column for active status, use that instead
-                    // $q->where('rental_status', 'active');
+                    $q->whereNull('end_date');
                 }]);
             }])
             ->with(['rooms.utilityUsage.utility', 'rooms.utilityUsage.utilityPrice'])
@@ -640,25 +635,21 @@ class PropertyController extends Controller
             ], 404);
         }
     
-        // Format the response to include utility name and price unit
+        // Format properties with utilities at property level
         $formattedProperties = $properties->map(function ($property) {
-            $formattedRooms = $property->rooms->map(function ($room) {
-                $formattedUtilities = $room->utilityUsage->map(function ($usage) {
-                    return [
-                        'utility_name' => $usage->utility->utility_name,
-                        'price_unit' => $usage->utilityPrice->price,
-                        'usage_date' => $usage->usage_date,
-                        'amount_used' => $usage->amount_used,
-                    ];
-                });
+            // Collect all utilities from all rooms in this property
+            $allUtilities = $property->rooms->flatMap(function ($room) {
+                return $this->formatUtilities($room->utilityUsage);
+            })->unique('utility_name'); // Remove duplicates based on utility_name
     
+            $formattedRooms = $property->rooms->map(function ($room) {
                 return [
                     'room_id' => $room->room_id,
                     'room_number' => $room->room_number,
                     'room_type' => $room->room_type,
                     'available' => $room->available,
                     'rent_amount' => $room->rent_amount,
-                    'utilities' => $formattedUtilities,
+                    // Utilities removed from here
                 ];
             });
     
@@ -670,6 +661,7 @@ class PropertyController extends Controller
                 'total_floors' => $property->total_floors,
                 'total_rooms' => $property->total_rooms,
                 'description' => $property->description,
+                'utilities' => $allUtilities->values(), // Add utilities at property level
                 'rooms' => $formattedRooms,
             ];
         });
@@ -685,8 +677,23 @@ class PropertyController extends Controller
             })
         ], 200);
     }
-
-
+    
+    /**
+     * Format utility usage data
+     * @param \Illuminate\Database\Eloquent\Collection $utilityUsages
+     * @return \Illuminate\Support\Collection
+     */
+    private function formatUtilities($utilityUsages)
+    {
+        return $utilityUsages->map(function ($usage) {
+            return [
+                'utility_name' => $usage->utility->utility_name,
+                'price_unit' => $usage->utilityPrice->price,
+                'usage_date' => $usage->usage_date,
+                'amount_used' => $usage->amount_used,
+            ];
+        });
+    }
 
     /**
      * Remove the specified property.

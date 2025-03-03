@@ -8,7 +8,14 @@ class RentalDetail extends Model
 {
     protected $table = 'rental_detail';
     protected $primaryKey = 'rental_id';
-    protected $fillable = ['landlord_id', 'tenant_id', 'room_id', 'start_date', 'end_date', 'lease_agreement'];
+    protected $fillable = [
+        'landlord_id',
+        'tenant_id',
+        'room_id',
+        'start_date',
+        'end_date',
+        'lease_agreement' // Add lease_agreement to the fillable array
+    ];
 
     public function landlord()
     {

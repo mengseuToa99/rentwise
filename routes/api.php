@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccessPermissionController;
 use App\Http\Controllers\PermissionGroupController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\RentalController;
 use App\Http\Controllers\RoleController;
@@ -60,9 +61,17 @@ Route::group(['prefix' => '/rentwise'], function () {
 
 
         // Rentail controller
-        Route::post('/rentail', [RentalController::class, 'store']);
+        Route::put('/rental/{id}', [RentalController::class, 'update']);
+        Route::get('/rental/{id}', [RentalController::class, 'show']);
+        Route::post('/rental', [RentalController::class, 'store']);
+        Route::delete('/rental/{rentail_id}', [RentalController::class, 'destroy']);
 
-        
+
+        // get invoice cutomer
+        Route::put('/rental/{id}', [InvoiceController::class, 'update']);
+        Route::get('/rental/{id}', [InvoiceController::class, 'show']);
+        Route::post('/rental', [InvoiceController::class, 'store']);
+        Route::delete('/rental/{rentail_id}', [InvoiceController::class, 'destroy']);
 
         
 
@@ -70,7 +79,7 @@ Route::group(['prefix' => '/rentwise'], function () {
     // ->middleware('permission:view_property');
 
     // Route::get('/system/settings', 'SystemController@settings')
-    // ->middleware('permission:manage_system_settings');
+    // ->middleware('Rental Management');
 
     
     });
