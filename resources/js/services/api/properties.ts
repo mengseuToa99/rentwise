@@ -12,16 +12,6 @@ export const propertyService = {
     return response.data;
   },
 
-  getProperty: async (propertyId: number): Promise<any> => {
-    try {
-      const response = await api.get(`/rentwise/landlords/properties/${propertyId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching property:", error);
-      throw error;
-    }
-  },
-
   deleteProperty: async (propertyId: number) => {
     const response = await api.delete(`/rentwise/properties/${propertyId}`);
     return response.data;

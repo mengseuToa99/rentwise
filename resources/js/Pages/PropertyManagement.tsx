@@ -336,7 +336,7 @@ const PropertyManagement: React.FC = () => {
                                 <DropdownMenuContent>
                                   <DropdownMenuItem asChild>
                                     <a
-                                      href={`${window.location.pathname}/editUnit/${unit.room_id}`}
+                                       href={`${window.location.pathname}/editUnit/${property.property_id}/${unit.room_id}`}
                                       className="w-full cursor-pointer"
                                     >
                                       Edit Unit

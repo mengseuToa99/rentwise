@@ -17,13 +17,13 @@ export interface PropertyFormData {
 // Update Room interface to match your API and form handling
 export interface Room {
   room_id?: number;
-  floor_number: number;
+  floor_number?: number;
   room_number: number;
-  description: string;
+  description?: string;
   room_type: string;
-  rent_amount: number;
+  rent_amount: string;
   utility_readings: UtilityReading[];
-  due_date: string;
+  due_date?: string;
   available: boolean;
 }
 
