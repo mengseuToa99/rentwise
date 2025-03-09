@@ -189,6 +189,7 @@ class PropertyController extends Controller
      * Update the specified property.
      */
 
+
     public function updateProperty(Request $request, PropertyDetail $property)
     {
         // dd($request->user()->id);
@@ -273,6 +274,8 @@ class PropertyController extends Controller
             ], 500);
         }
     }
+
+
 
     /**
      * Update the specified room with detailed validation.
@@ -393,6 +396,7 @@ class PropertyController extends Controller
             ], 500);
         }
     }
+
 
 
     /**
@@ -615,6 +619,7 @@ class PropertyController extends Controller
     }
 
 
+
     public function getPropertiesByLandlord()
     {
         $landlordId = Auth::user()->user_id;
@@ -677,7 +682,9 @@ class PropertyController extends Controller
             })
         ], 200);
     }
-    
+
+
+
     /**
      * Format utility usage data
      * @param \Illuminate\Database\Eloquent\Collection $utilityUsages

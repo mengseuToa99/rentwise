@@ -68,11 +68,10 @@ Route::group(['prefix' => '/rentwise'], function () {
 
 
         // get invoice cutomer
-        Route::put('/rental/{id}', [InvoiceController::class, 'update']);
-        Route::get('/rental/{id}', [InvoiceController::class, 'show']);
-        Route::post('/rental', [InvoiceController::class, 'store']);
-        Route::delete('/rental/{rentail_id}', [InvoiceController::class, 'destroy']);
-
+    // In routes/api.php
+        Route::post('/utility-readings', [InvoiceController::class, 'inputUtilityReadings']);
+        Route::get('/invoices/{invoiceId}', [InvoiceController::class, 'show']);
+        
         
 
     //     Route::get('/properties', 'PropertyController@index')
