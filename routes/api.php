@@ -39,7 +39,9 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::get('/{roomId}/utility-usage', [UnitController::class, 'getUtilityUsageByRoom']);
         Route::get('/properties/get-due-unit', [UnitController::class, 'getDueRooms']);
         Route::post('/properties/unit/calculation', [UnitController::class, 'calculateUtilityUsage']);
-        Route::put('/unit-update', [UnitController::class, 'updateUtilityUsage']);
+        Route::put('/unit-update-usage', [UnitController::class, 'updateUtilityUsage']);
+        Route::put('/unit-update', [UnitController::class, 'updateUnit']);
+
 
         // Permission Group Controller
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);

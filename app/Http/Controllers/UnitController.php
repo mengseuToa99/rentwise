@@ -17,6 +17,114 @@ use Illuminate\Validation\ValidationException;
 class UnitController extends Controller
 {
 
+    public function updateUnit(Request $request)
+    {
+        try {
+            // Validate the incoming request
+            $validator = Validator::make($request->all(), [
+                'room_id' => 'required|exists:room_detail,room_id',
+                'property_id' => 'required|exists:property_detail,property_id',
+                'room_name' => 'nullable|string|max:255',
+                'floor_number' => 'nullable|integer|min:0',
+                'room_number' => 'nullable|string|max:50',
+                'due_date' => 'nullable|date',
+                'room_type' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'available' => 'nullable|boolean',
+                'rent_amount' => 'nullable|numeric|min:0',
+                'utility_readings' => 'nullable|array', // Array of utility readings
+                'utility_readings.*.utility_id' => 'required|exists:utilities,utility_id', // Utility ID must exist
+                'utility_readings.*.usage_date' => 'required|date', // Usage date is required
+                'utility_readings.*.old_meter_reading' => 'nullable|numeric|min:0', // Old reading (optional)
+                'utility_readings.*.new_meter_reading' => 'required|numeric|min:0', // New reading is required
+            ]);
+    
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+    
+            $user = Auth::user()->user_id;
+            $roomId = $request->room_id;
+            $propertyId = $request->property_id;
+    
+            // Verify property ownership
+            $property = PropertyDetail::where('property_id', $propertyId)
+                ->where('landlord_id', $user)
+                ->first();
+    
+            if (!$property) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Property not found or unauthorized access',
+                ], 403);
+            }
+    
+            // Verify room belongs to the property
+            $room = RoomDetail::where('room_id', $roomId)
+                ->where('property_id', $propertyId)
+                ->first();
+    
+            if (!$room) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Room not found or does not belong to the specified property',
+                ], 404);
+            }
+    
+            // Update room details
+            $room->update($request->only([
+                'room_name',
+                'floor_number',
+                'room_number',
+                'due_date',
+                'room_type',
+                'description',
+                'available',
+                'rent_amount',
+            ]));
+    
+            // Update or create utility readings
+            if ($request->has('utility_readings')) {
+                foreach ($request->utility_readings as $reading) {
+                    // Find or create the utility usage record
+                    UtilityUsage::updateOrCreate(
+                        [
+                            'room_id' => $roomId,
+                            'utility_id' => $reading['utility_id'],
+                            'usage_date' => $reading['usage_date'],
+                        ],
+                        [
+                            'old_meter_reading' => $reading['old_meter_reading'] ?? null,
+                            'new_meter_reading' => $reading['new_meter_reading'],
+                            'amount_used' => $reading['new_meter_reading'] - ($reading['old_meter_reading'] ?? 0),
+                        ]
+                    );
+                }
+            }
+    
+            // Fetch updated room details with utility readings
+            $updatedRoom = RoomDetail::with('utilityUsage.utility')
+                ->find($roomId);
+    
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Room and utility details updated successfully',
+                'data' => $updatedRoom,
+            ], 200);
+    
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function getUtilityUsageByRoom($roomId)
     {
         try {
