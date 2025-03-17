@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessPermissionController;
 use App\Http\Controllers\PermissionGroupController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\RentalController;
 use App\Http\Controllers\RoleController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\Mime\MessageConverter;
 
 // Group all routes under the 'api/rentwise' prefix
 Route::group(['prefix' => '/rentwise'], function () {
@@ -76,12 +78,18 @@ Route::group(['prefix' => '/rentwise'], function () {
         
         
 
+        Route::get('/inbox', [MessageController::class, 'inbox'])->name('inbox');
+        Route::post('/message/{userId}', [MessageController::class, 'store'])->name('message.store');
+        Route::get('/message/{userId}', [MessageController::class, 'show'])->name('message.show');
+
     //     Route::get('/properties', 'PropertyController@index')
     // ->middleware('permission:view_property');
 
     // Route::get('/system/settings', 'SystemController@settings')
-    // ->middleware('Rental Management');
+    // ->middleware('Rental Management');http://localhost:8000/api/rentwise/inbox
 
     
     });
 }); 
+
+

@@ -156,12 +156,18 @@ importers:
       concurrently:
         specifier: ^9.0.1
         version: 9.1.2
+      laravel-echo:
+        specifier: ^2.0.2
+        version: 2.0.2
       laravel-vite-plugin:
         specifier: ^1.0
         version: 1.1.1(vite@6.0.11(@types/node@18.19.71)(jiti@1.21.7)(yaml@2.7.0))
       postcss:
         specifier: ^8.4.31
         version: 8.5.1
+      pusher-js:
+        specifier: ^8.4.0
+        version: 8.4.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -2105,6 +2111,10 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
+  laravel-echo@2.0.2:
+    resolution: {integrity: sha512-Ciai6hA7r35MFqNRb8G034cvm9WiveSTFQQKRGJhWtZGbng7C8BBa5QvqDxk/Mw5GeJ+q19jrEwQhf7r1b1lcg==}
+    engines: {node: '>=20'}
+
   laravel-vite-plugin@1.1.1:
     resolution: {integrity: sha512-HMZXpoSs1OR+7Lw1+g4Iy/s3HF3Ldl8KxxYT2Ot8pEB4XB/QRuZeWgDYJdu552UN03YRSRNK84CLC9NzYRtncA==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
@@ -2395,6 +2405,9 @@ packages:
 
   proxy-from-env@1.1.0:
     resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
+
+  pusher-js@8.4.0:
+    resolution: {integrity: sha512-wp3HqIIUc1GRyu1XrP6m2dgyE9MoCsXVsWNlohj0rjSkLf+a0jLvEyVubdg58oMk7bhjBWnFClgp8jfAa6Ak4Q==}
 
   qs@6.14.0:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
@@ -2777,6 +2790,9 @@ packages:
 
   turbo-stream@2.4.0:
     resolution: {integrity: sha512-FHncC10WpBd2eOmGwpmQsWLDoK4cqsA/UT/GqNoaKOQnT8uzhtCbg3EoUDMvqpOSAI0S26mr0rkjzbOO6S3v1g==}
+
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
 
   typescript@5.7.3:
     resolution: {integrity: sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==}
@@ -4763,6 +4779,8 @@ snapshots:
 
   kleur@3.0.3: {}
 
+  laravel-echo@2.0.2: {}
+
   laravel-vite-plugin@1.1.1(vite@6.0.11(@types/node@18.19.71)(jiti@1.21.7)(yaml@2.7.0)):
     dependencies:
       picocolors: 1.1.1
@@ -5012,6 +5030,10 @@ snapshots:
       react-is: 16.13.1
 
   proxy-from-env@1.1.0: {}
+
+  pusher-js@8.4.0:
+    dependencies:
+      tweetnacl: 1.0.3
 
   qs@6.14.0:
     dependencies:
@@ -5471,6 +5493,8 @@ snapshots:
   tslib@2.8.1: {}
 
   turbo-stream@2.4.0: {}
+
+  tweetnacl@1.0.3: {}
 
   typescript@5.7.3: {}
 
