@@ -38,4 +38,9 @@ export const propertyService = {
     const response = await api.put(`/rentwise/properties/${propertyId}`, propertyData);
     return response.data;
   },
+
+  updateUnit: async (unitData: any) => {
+    const response = await api.put(`/rentwise/update-unit`, unitData);
+    return response.data;
+  },
 };

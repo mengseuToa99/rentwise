@@ -1,49 +1,65 @@
-// Update your PropertyFormData interface
-export interface PropertyFormData {
+// Example of what the property types file should export
+interface UtilityPrice {
+  price_id: number;
+  price_amount: string;
+  effective_date: string;
+}
+
+interface Utility {
+  utility_id: number;
+  usage_id: number;
+  utility_name: string;
+  utility_type: string;
+  unit_of_measure: string;
+  usage_date: string;
+  old_meter_reading: string;
+  new_meter_reading: string;
+  amount_used: string;
+  current_price: UtilityPrice;
+  total_cost: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Room {
+  room_id: number;
+  property_id: number;
+  room_name: string;
+  floor_number: number;
+  room_number: number;
+  due_date: string;
+  description: string;
+  room_type: string;
+  available: number;
+  rent_amount: string;
+  utility_readings?: UtilityReading[];
+}
+
+interface UtilityReading {
+  utility_id?: number;
+  utility_name?: string;
+  usage_date?: string;
+  old_meter_reading?: number;
+  new_meter_reading?: number;
+}
+
+interface Property {
   property_id: number;
   property_name: string;
   address: string;
   location: string;
   description: string;
-  utilities: {
-    utility_name: string;
-    description: string;
-    price: number;
-    isDefault?: boolean;
-  }[];
+  utilities: Utility[];
   rooms: Room[];
 }
 
-// Update Room interface to match your API and form handling
-export interface Room {
-  room_id?: number;
-  floor_number?: number;
-  room_number: number;
-  description?: string;
-  room_type: string;
-  rent_amount: string;
-  utility_readings: UtilityReading[];
-  due_date?: string;
-  available: boolean;
-}
-
-// Add a new interface for utility readings
-export interface UtilityReading {
-  utility_name: string;
-  reading: number;
-}
-
-// Keep UnitFormValues for form handling if needed
-export interface UnitFormValues {
+interface FormValues {
   unitNumber: number;
-  unitDescription: string; // Fixed typo from "unitDescrption"
+  unitDescription: string;
   roomType: string;
   unitPrice: string;
-  floor: number;
+  electricityReading: string;
+  waterReading: string;
+  roomDueDate: Date | undefined;
   available: boolean;
-  roomDueDate: Date;
-  utilityReadings: {
-    utility_name: string;
-    reading: string;
-  }[];
 }

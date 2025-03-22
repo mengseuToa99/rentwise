@@ -650,7 +650,12 @@ class PropertyController extends Controller
             $formattedRooms = $property->rooms->map(function ($room) {
                 return [
                     'room_id' => $room->room_id,
+                    'property_id' => $room->property_id,
+                    'room_name' => $room->room_name,
+                    'floor_number' => $room->floor_number,
                     'room_number' => $room->room_number,
+                    'due_date' => $room->due_date,
+                    'description' => $room->description,
                     'room_type' => $room->room_type,
                     'available' => $room->available,
                     'rent_amount' => $room->rent_amount,
@@ -690,14 +695,42 @@ class PropertyController extends Controller
      * @param \Illuminate\Database\Eloquent\Collection $utilityUsages
      * @return \Illuminate\Support\Collection
      */
-    private function formatUtilities($utilityUsages)
+    protected function formatUtilities($utilityUsages)
     {
         return $utilityUsages->map(function ($usage) {
+            // Get the latest utility price
+            $currentPrice = $usage->utilityPrice;
+            $priceAmount = $currentPrice ? $currentPrice->price : 0;
+            
+            // Calculate total cost for this usage
+            $totalCost = $usage->amount_used * $priceAmount;
+            
             return [
-                'utility_name' => $usage->utility->utility_name,
-                'price_unit' => $usage->utilityPrice->price,
+                'utility_id' => $usage->utility_id,
+                'usage_id' => $usage->usage_id,
+                'utility_name' => $usage->utility->utility_name ?? 'Unknown',
+                'utility_type' => $usage->utility->utility_type ?? 'Unknown',
+                'unit_of_measure' => $usage->utility->unit_of_measure ?? '',
+                
+                // Include usage details
                 'usage_date' => $usage->usage_date,
+                'old_meter_reading' => $usage->old_meter_reading,
+                'new_meter_reading' => $usage->new_meter_reading,
                 'amount_used' => $usage->amount_used,
+                
+                // Include price details
+                'current_price' => [
+                    'price_id' => $currentPrice ? $currentPrice->price_id : null,
+                    'price_amount' => $priceAmount,
+                    'effective_date' => $currentPrice ? $currentPrice->effective_date : null,
+                ],
+                
+                // Add calculated cost
+                'total_cost' => $totalCost,
+                
+                // Include timestamps for tracking
+                'created_at' => $usage->created_at,
+                'updated_at' => $usage->updated_at,
             ];
         });
     }
