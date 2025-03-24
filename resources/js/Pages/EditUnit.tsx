@@ -213,10 +213,61 @@ const EditUnit: React.FC = () => {
   };
 
   // Handle form submission
-  const onSubmit = (values: FormValues) => {
-    console.log("Form values:", values);
-    toast.success("Form submitted (view logged data in console)");
-    navigate("/property");
+  const onSubmit = async (values: FormValues) => {
+    try {
+      if (!unitData) return;
+      
+      // Format utility readings
+      const utilityReadings = [];
+      
+      const electricityUtil = utilities.find(u => u.utility_name.toLowerCase() === "electricity");
+      const waterUtil = utilities.find(u => u.utility_name.toLowerCase() === "water");
+      
+      if (electricityUtil && values.electricityReading) {
+        utilityReadings.push({
+          utility_id: electricityUtil.utility_id,
+          usage_date: new Date().toISOString().split('T')[0],
+          old_meter_reading: parseFloat(electricityUtil.new_meter_reading) || 0,
+          new_meter_reading: parseFloat(values.electricityReading)
+        });
+      }
+      
+      if (waterUtil && values.waterReading) {
+        utilityReadings.push({
+          utility_id: waterUtil.utility_id,
+          usage_date: new Date().toISOString().split('T')[0],
+          old_meter_reading: parseFloat(waterUtil.new_meter_reading) || 0,
+          new_meter_reading: parseFloat(values.waterReading)
+        });
+      }
+      
+      // Prepare update data
+      const updateData = {
+        room_id: unitData.room_id,
+        property_id: unitData.property_id,
+        room_name: unitData.room_name, // Keep original room name
+        floor_number: unitData.floor_number, // Keep original floor number
+        room_number: values.unitNumber,
+        due_date: values.roomDueDate ? values.roomDueDate.toISOString().split('T')[0] : unitData.due_date.split(' ')[0],
+        room_type: values.roomType,
+        description: values.unitDescription,
+        available: values.available ? 1 : 0,
+        rent_amount: parseFloat(values.unitPrice),
+        utility_readings: utilityReadings
+      };
+      
+      console.log("Sending update data:", updateData);
+      
+      // Call API to update unit
+      const response = await propertyService.updateUnit(updateData);
+      console.log("Update response:", response);
+      
+      toast.success("Unit updated successfully");
+      navigate("/property");
+    } catch (error) {
+      console.error("Error updating unit:", error);
+      toast.error("Failed to update unit");
+    }
   };
 
   if (loading) {
@@ -421,7 +472,7 @@ const EditUnit: React.FC = () => {
                 Cancel
               </Button>
               <Button type="submit">
-                View Unit
+                Save Changes
               </Button>
             </div>
           </form>

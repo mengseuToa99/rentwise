@@ -44,7 +44,6 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::put('/unit-update-usage', [UnitController::class, 'updateUtilityUsage']);
         Route::put('/unit-update', [UnitController::class, 'updateUnit']);
 
-
         // Permission Group Controller
         Route::get('/permission-groups', [PermissionGroupController::class, 'index']);
         Route::post('/permission-groups', [PermissionGroupController::class, 'store']);

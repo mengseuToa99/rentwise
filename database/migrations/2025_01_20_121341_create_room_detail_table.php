@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('property_id');
             $table->string('room_name');
             $table->integer('floor_number');
-            $table->integer('room_number');
+            $table->string('room_number');
             $table->timestamp('due_date');
             $table->string('room_type');
             $table->text('description')->nullable();
