@@ -1,4 +1,4 @@
-# version: '3'
+version: '3'
 services:
   app:
     build:
@@ -10,6 +10,8 @@ services:
     volumes:
       - ./:/var/www
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    ports:
+      - "8080:8080"  # Expose Reverb's port
     networks:
       - rentwise-network
     environment:
@@ -18,6 +20,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "artisan", "inspire"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   nginx:
     image: nginx:alpine
@@ -32,6 +39,7 @@ services:
       - rentwise-network
     depends_on:
       - app
+
   node:
     image: node:20-alpine
     container_name: rentwise-node
@@ -46,15 +54,10 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
-      - VITE_DISABLE_RESTART=true  # Add this to prevent automatic restarts
-  # Add these resource limits
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 2G
+      - VITE_DISABLE_RESTART=true
+    mem_limit: 2g
+    cpus: '1'
 
-          
   db:
     image: mysql:8.0
     container_name: rentwise-db

@@ -2,10 +2,19 @@
 
 namespace App\Http;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
 {
+
+    protected function schedule(Schedule $schedule)
+    {
+        // Run daily at midnight
+        $schedule->command('utility:check-due-readings')->daily();
+    }
+
+
     /**
      * The application's global HTTP middleware stack.
      *

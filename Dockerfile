@@ -9,57 +9,38 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    netcat-traditional
-
-# Install Node.js 20.x and npm
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get install -y nodejs
-
-# Install pnpm globally
-RUN npm install -g pnpm
+    libzip-dev \
+    supervisor
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Create system user to run Composer and Artisan Commands
+RUN useradd -G www-data,root -u 1000 -d /home/www www
+RUN mkdir -p /home/www/.composer && \
+    chown -R www:www /home/www
+
 # Set working directory
 WORKDIR /var/www
 
-# Copy composer files first
-COPY composer.json composer.lock ./
+# Copy custom configurations
+COPY docker/php/local.ini /usr/local/etc/php/conf.d/local.ini
 
-# Install Composer dependencies
-RUN composer install --no-scripts --no-autoloader
+# Copy supervisor configuration
+COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Install Node.js and npm
+RUN curl -sL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
 
-# Copy the rest of the application code
-COPY . .
+# Expose port 9000 for PHP-FPM and 8080 for Reverb
+EXPOSE 9000 8080
 
-# Generate optimized autoloader
-RUN composer dump-autoload --optimize
-
-
-
-# After your COPY statements:
-RUN chown -R www-data:www-data /var/www \
-&& chmod -R 775 /var/www/storage \
-&& chmod -R 775 /var/www/bootstrap/cache \
-&& chmod -R 775 /var/www/app/Http/Controllers
-
-# Install and build frontend assets using pnpm
-RUN pnpm install
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www
-RUN chmod -R 755 /var/www/storage /var/www/bootstrap/cache
-
-# Copy and set permissions for the entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Start PHP-FPM server and Supervisor
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
