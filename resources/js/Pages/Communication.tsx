@@ -5,7 +5,44 @@ import RootLayout from "@/components/layout";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { userService } from "../services/api/users";
-import type { User, Message } from "../services/api/types/user";
+import type { User } from "../services/api/types/user";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { SendIcon, UserIcon, SearchIcon } from "lucide-react"; 
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Define the Message interface since it's missing from the imported types
+interface Message {
+  message_id: number;
+  sender_id: number;
+  recipient_id: number;
+  message: string;
+  created_at: string;
+  updated_at: string;
+  conversation_id?: number;
+}
+
+// Extend Window interface to include Echo
+declare global {
+  interface Window {
+    Echo?: {
+      private: (channel: string) => {
+        listen: (event: string, callback: () => void) => void;
+      };
+      leave: (channel: string) => void;
+    };
+  }
+}
+
+// Extended User interface to include the missing properties
+interface ExtendedUser extends User {
+  profile_image?: string;
+  role?: string;
+}
 
 interface CommunicationProps {
     authUser?: {
@@ -16,26 +53,31 @@ interface CommunicationProps {
 const Communication: React.FC<CommunicationProps> = ({
     authUser = { user_id: 0 },
 }) => {
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [selectedUser, setSelectedUser] = useState<ExtendedUser | null>(null);
     const [newMessage, setNewMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState<ExtendedUser[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<ExtendedUser[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const [isEchoInitialized, setIsEchoInitialized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const chatContainerRef = useRef<HTMLDivElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Fetch users from the backend
     useEffect(() => {
         const fetchUsers = async () => {
             try {
                 setIsLoading(true);
-                const response = await userService.getInboxUsers(); // Updated to use new method
-                setUsers(Array.isArray(response) ? response : []);
+                const response = await userService.getInboxUsers();
+                const usersList = Array.isArray(response) ? response : [];
+                setUsers(usersList as ExtendedUser[]);
+                setFilteredUsers(usersList as ExtendedUser[]);
             } catch (error) {
                 console.error("Failed to fetch users:", error);
                 setError("Failed to load users");
                 setUsers([]);
+                setFilteredUsers([]);
             } finally {
                 setIsLoading(false);
             }
@@ -44,7 +86,22 @@ const Communication: React.FC<CommunicationProps> = ({
         fetchUsers();
     }, []);
 
-    // Rest of the useEffect hooks remain the same...
+    // Filter users based on search query
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setFilteredUsers(users);
+            return;
+        }
+
+        const filtered = users.filter(
+            (user) =>
+                user.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                user.last_name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setFilteredUsers(filtered);
+    }, [searchQuery, users]);
+
+    // Fetch messages for selected user
     useEffect(() => {
         if (!selectedUser) return;
 
@@ -84,18 +141,19 @@ const Communication: React.FC<CommunicationProps> = ({
         }
     };
 
+    // Auto-scroll to bottom of chat when messages change
     useEffect(() => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop =
-                chatContainerRef.current.scrollHeight;
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
     }, [messages]);
 
+    // Setup WebSocket for real-time messages
     useEffect(() => {
         if (!authUser?.user_id || !window.Echo || isEchoInitialized) return;
 
         const webSocketChannel = `message.${authUser.user_id}`;
-        admin
+        
         try {
             window.Echo.private(webSocketChannel).listen("MessageSent", () => {
                 if (selectedUser) {
@@ -122,120 +180,169 @@ const Communication: React.FC<CommunicationProps> = ({
         };
     }, [selectedUser, authUser?.user_id, isEchoInitialized]);
 
-    // JSX remains the same...
+    // Get initials for avatar fallback
+    const getInitials = (firstName: string, lastName: string) => {
+        return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    };
+
+    // Format timestamp
+    const formatTime = (timestamp: string) => {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <RootLayout>
-            <div className="min-h-screen w-full bg-white">
-                <div className="container mx-auto py-8 flex gap-4">
-                    <div className="w-1/4 max-w-md bg-white rounded-lg shadow-md">
-                        <h1 className="text-2xl font-bold p-6 border-b">
-                            Chats
-                        </h1>
-                        <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-                            {isLoading ? (
-                                <div className="p-4 text-gray-500">Loading users...</div>
-                            ) : error ? (
-                                <div className="p-4 text-red-500">{error}</div>
-                            ) : users.length === 0 ? (
-                                <div className="p-4 text-gray-500">No users found</div>
-                            ) : (
-                                users.map((user) => (
-                                    <div
-                                        key={user.user_id}
-                                        onClick={() => setSelectedUser(user)}
-                                        className={`flex items-center p-4 hover:bg-gray-50 border-b cursor-pointer ${
-                                            selectedUser?.user_id === user.user_id
-                                                ? "bg-gray-100"
-                                                : ""
-                                        }`}
-                                    >
-                                        <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center">
-                                            <svg
-                                                className="w-6 h-6 text-white"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                                />
-                                            </svg>
-                                        </div>
-                                        <span className="ml-4 text-gray-700">
-                                            {user.first_name} {user.last_name}
-                                        </span>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="flex-1 bg-white rounded-lg shadow-md flex flex-col">
-                        {selectedUser ? (
-                            <>
-                                <div className="p-4 border-b">
-                                    <h2 className="text-xl font-semibold">
-                                        Chat with {selectedUser.first_name}{" "}
-                                        {selectedUser.last_name}
-                                    </h2>
+            <div className="h-[calc(100vh-64px)] w-full overflow-hidden bg-background">
+                <div className="container h-full mx-auto py-4 px-4">
+                    <h1 className="text-3xl font-bold mb-4">Messages</h1>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100%-4rem)]">
+                        {/* Users list */}
+                        <Card className="md:col-span-1 h-full flex flex-col">
+                            <CardHeader className="pb-3 flex-none">
+                                <CardTitle>Contacts</CardTitle>
+                                <div className="relative mt-2">
+                                    <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search contacts..."
+                                        className="pl-8"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
                                 </div>
-                                <div
-                                    className="flex-1 overflow-y-auto p-4 space-y-4"
-                                    ref={chatContainerRef}
-                                >
-                                    {messages.map((message) => (
-                                        <div
-                                            key={message.message_id}
-                                            className={`flex ${
-                                                message.sender_id ===
-                                                authUser.user_id
-                                                    ? "justify-end"
-                                                    : "justify-start"
-                                            }`}
-                                        >
+                            </CardHeader>
+                            <Separator className="flex-none" />
+                            <div className="flex-1 overflow-hidden">
+                                <ScrollArea className="h-full">
+                                    {isLoading ? (
+                                        <div className="p-4 space-y-4">
+                                            {[1, 2, 3, 4, 5].map((i) => (
+                                                <div key={i} className="flex items-center space-x-4">
+                                                    <Skeleton className="h-10 w-10 rounded-full" />
+                                                    <div className="space-y-2">
+                                                        <Skeleton className="h-4 w-[150px]" />
+                                                        <Skeleton className="h-4 w-[100px]" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : error ? (
+                                        <div className="p-4 text-destructive">{error}</div>
+                                    ) : filteredUsers.length === 0 ? (
+                                        <div className="p-4 text-muted-foreground">
+                                            {searchQuery ? "No matching contacts found" : "No contacts found"}
+                                        </div>
+                                    ) : (
+                                        filteredUsers.map((user) => (
                                             <div
-                                                className={`max-w-xs p-3 rounded-lg ${
-                                                    message.sender_id ===
-                                                    authUser.user_id
-                                                        ? "bg-blue-500 text-white"
-                                                        : "bg-gray-100"
+                                                key={user.user_id}
+                                                onClick={() => setSelectedUser(user)}
+                                                className={`flex items-center p-4 hover:bg-accent transition-colors cursor-pointer ${
+                                                    selectedUser?.user_id === user.user_id
+                                                        ? "bg-accent"
+                                                        : ""
                                                 }`}
                                             >
-                                                <p>{message.message}</p>
-                                                <p className="text-xs mt-1 opacity-70">
-                                                    {new Date(
-                                                        message.created_at
-                                                    ).toLocaleTimeString()}
-                                                </p>
+                                                <Avatar className="h-10 w-10">
+                                                    <AvatarImage src={user.profile_image} alt={`${user.first_name} ${user.last_name}`} />
+                                                    <AvatarFallback>{getInitials(user.first_name, user.last_name)}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="ml-4">
+                                                    <p className="font-medium">{user.first_name} {user.last_name}</p>
+                                                    <p className="text-sm text-muted-foreground">{user.role || user.roles?.[0]?.name || 'User'}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </ScrollArea>
+                            </div>
+                        </Card>
+
+                        {/* Chat area */}
+                        <Card className="md:col-span-2 h-full flex flex-col">
+                            {selectedUser ? (
+                                <>
+                                    <CardHeader className="pb-3 flex-none">
+                                        <div className="flex items-center">
+                                            <Avatar className="h-10 w-10 mr-3">
+                                                <AvatarImage src={selectedUser.profile_image} alt={`${selectedUser.first_name} ${selectedUser.last_name}`} />
+                                                <AvatarFallback>{getInitials(selectedUser.first_name, selectedUser.last_name)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <CardTitle>{selectedUser.first_name} {selectedUser.last_name}</CardTitle>
+                                                <p className="text-sm text-muted-foreground">{selectedUser.role || selectedUser.roles?.[0]?.name || 'User'}</p>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                                <div className="p-4 border-t">
-                                    <Textarea
-                                        value={newMessage}
-                                        onChange={(e) =>
-                                            setNewMessage(e.target.value)
-                                        }
-                                        onKeyDown={handleKeyPress}
-                                        placeholder="Type a message..."
-                                        rows={2}
-                                    />
-                                    <div className="mt-2 flex justify-end">
-                                        <Button onClick={handleSendMessage}>
-                                            Send
-                                        </Button>
+                                    </CardHeader>
+                                    <Separator className="flex-none" />
+                                    <div className="flex-1 overflow-hidden relative">
+                                        <div className="absolute inset-0 overflow-y-auto p-4">
+                                            {messages.length === 0 ? (
+                                                <div className="flex items-center justify-center h-full text-muted-foreground">
+                                                    No messages yet. Start the conversation!
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    {messages.map((message) => (
+                                                        <div
+                                                            key={message.message_id}
+                                                            className={`flex ${
+                                                                message.sender_id === authUser.user_id
+                                                                    ? "justify-end"
+                                                                    : "justify-start"
+                                                            }`}
+                                                        >
+                                                            <div
+                                                                className={`max-w-md p-3 rounded-lg ${
+                                                                    message.sender_id === authUser.user_id
+                                                                        ? "bg-primary text-primary-foreground"
+                                                                        : "bg-accent text-accent-foreground"
+                                                                }`}
+                                                            >
+                                                                <p className="break-words">{message.message}</p>
+                                                                <p className="text-xs mt-1 opacity-70 text-right">
+                                                                    {formatTime(message.created_at)}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <div ref={messagesEndRef} />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
+                                    <Separator className="flex-none" />
+                                    <CardFooter className="p-4 flex-none">
+                                        <div className="flex w-full space-x-2">
+                                            <Textarea
+                                                value={newMessage}
+                                                onChange={(e) => setNewMessage(e.target.value)}
+                                                onKeyDown={handleKeyPress}
+                                                placeholder="Type a message..."
+                                                className="flex-1 resize-none"
+                                                rows={2}
+                                            />
+                                            <Button 
+                                                size="icon" 
+                                                onClick={handleSendMessage}
+                                                disabled={!newMessage.trim()}
+                                            >
+                                                <SendIcon className="h-5 w-5" />
+                                            </Button>
+                                        </div>
+                                    </CardFooter>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-6">
+                                    <UserIcon className="h-16 w-16 mb-4 text-muted-foreground/50" />
+                                    <h3 className="text-xl font-medium mb-2">No conversation selected</h3>
+                                    <p className="text-center max-w-sm">
+                                        Select a contact from the list to start chatting
+                                    </p>
                                 </div>
-                            </>
-                        ) : (
-                            <div className="flex-1 flex items-center justify-center text-gray-500">
-                                Select a user to start chatting
-                            </div>
-                        )}
+                            )}
+                        </Card>
                     </div>
                 </div>
             </div>
