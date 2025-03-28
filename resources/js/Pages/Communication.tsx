@@ -11,9 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { SendIcon, UserIcon, SearchIcon } from "lucide-react"; 
+import { SendIcon, UserIcon, SearchIcon, InfoIcon } from "lucide-react"; 
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Define the Message interface since it's missing from the imported types
 interface Message {
@@ -44,15 +45,10 @@ interface ExtendedUser extends User {
   role?: string;
 }
 
-interface CommunicationProps {
-    authUser?: {
-        user_id: number;
-    };
-}
+interface CommunicationProps {}
 
-const Communication: React.FC<CommunicationProps> = ({
-    authUser = { user_id: 0 },
-}) => {
+const Communication: React.FC<CommunicationProps> = () => {
+    const [currentUserId, setCurrentUserId] = useState<number>(0);
     const [selectedUser, setSelectedUser] = useState<ExtendedUser | null>(null);
     const [newMessage, setNewMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
@@ -62,7 +58,38 @@ const Communication: React.FC<CommunicationProps> = ({
     const [isEchoInitialized, setIsEchoInitialized] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showDebugInfo, setShowDebugInfo] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Get current user ID from localStorage
+    useEffect(() => {
+        const getUserFromLocalStorage = () => {
+            try {
+                const storedUser = localStorage.getItem("user");
+                if (storedUser) {
+                    const userData = JSON.parse(storedUser);
+                    const userId = Number(userData.user_id || userData.id || 0);
+                    console.log("Current User ID from localStorage:", userId, typeof userId);
+                    console.log("Full user data from localStorage:", userData);
+                    setCurrentUserId(userId);
+                }
+            } catch (error) {
+                console.error("Error getting user from localStorage:", error);
+            }
+        };
+
+        getUserFromLocalStorage();
+        
+        // Set up an event listener for local storage changes
+        const handleStorageChange = () => {
+            getUserFromLocalStorage();
+        };
+        
+        window.addEventListener('storage', handleStorageChange);
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
 
     // Fetch users from the backend
     useEffect(() => {
@@ -108,7 +135,10 @@ const Communication: React.FC<CommunicationProps> = ({
         const fetchMessages = async () => {
             try {
                 const response = await userService.userChatRoom(selectedUser.user_id);
-                setMessages(Array.isArray(response) ? response : []);
+                const messagesData = Array.isArray(response) ? response : [];
+                console.log("Messages data:", messagesData);
+                console.log("Current user ID:", currentUserId, typeof currentUserId);
+                setMessages(messagesData);
             } catch (error) {
                 console.error("Failed to fetch messages:", error);
                 setMessages([]);
@@ -116,7 +146,7 @@ const Communication: React.FC<CommunicationProps> = ({
         };
 
         fetchMessages();
-    }, [selectedUser]);
+    }, [selectedUser, currentUserId]);
 
     const handleSendMessage = async () => {
         if (!selectedUser || !newMessage.trim()) return;
@@ -127,6 +157,7 @@ const Communication: React.FC<CommunicationProps> = ({
                 conversation_id: 0
             };
             const response = await userService.sendMessage(selectedUser.user_id, messageData);
+            console.log("Sent message response:", response);
             setMessages((prev) => [...prev, response]);
             setNewMessage("");
         } catch (error) {
@@ -150,9 +181,9 @@ const Communication: React.FC<CommunicationProps> = ({
 
     // Setup WebSocket for real-time messages
     useEffect(() => {
-        if (!authUser?.user_id || !window.Echo || isEchoInitialized) return;
+        if (!currentUserId || !window.Echo || isEchoInitialized) return;
 
-        const webSocketChannel = `message.${authUser.user_id}`;
+        const webSocketChannel = `message.${currentUserId}`;
         
         try {
             window.Echo.private(webSocketChannel).listen("MessageSent", () => {
@@ -178,7 +209,7 @@ const Communication: React.FC<CommunicationProps> = ({
                 window.Echo.leave(webSocketChannel);
             }
         };
-    }, [selectedUser, authUser?.user_id, isEchoInitialized]);
+    }, [selectedUser, currentUserId, isEchoInitialized]);
 
     // Get initials for avatar fallback
     const getInitials = (firstName: string, lastName: string) => {
@@ -195,7 +226,63 @@ const Communication: React.FC<CommunicationProps> = ({
         <RootLayout>
             <div className="h-[calc(100vh-64px)] w-full overflow-hidden bg-background">
                 <div className="container h-full mx-auto py-4 px-4">
-                    <h1 className="text-3xl font-bold mb-4">Messages</h1>
+                    <div className="flex justify-between items-center mb-4">
+                        <h1 className="text-3xl font-bold">Messages</h1>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setShowDebugInfo(!showDebugInfo)}
+                            title="Toggle Debug Information"
+                        >
+                            <InfoIcon className="h-5 w-5" />
+                        </Button>
+                    </div>
+                    
+                    {showDebugInfo && (
+                        <Card className="mb-4 overflow-auto max-h-[300px]">
+                            <CardHeader className="pb-2">
+                                <CardTitle>Message Debug Information</CardTitle>
+                                <p className="text-sm text-muted-foreground">Current User ID: {currentUserId} (Type: {typeof currentUserId})</p>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Message ID</TableHead>
+                                            <TableHead>Sender ID</TableHead>
+                                            <TableHead>Recipient ID</TableHead>
+                                            <TableHead>Message</TableHead>
+                                            <TableHead>Raw Match</TableHead>
+                                            <TableHead>Number Match</TableHead>
+                                            <TableHead>Created At</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {messages.map((message) => {
+                                            const rawSenderId = message.sender_id;
+                                            const rawCurrentUserId = currentUserId;
+                                            const numSenderId = Number(message.sender_id);
+                                            const numCurrentUserId = Number(currentUserId);
+                                            const rawMatch = rawSenderId === rawCurrentUserId;
+                                            const numMatch = numSenderId === numCurrentUserId;
+                                            
+                                            return (
+                                                <TableRow key={message.message_id}>
+                                                    <TableCell>{message.message_id}</TableCell>
+                                                    <TableCell>{message.sender_id} ({typeof message.sender_id})</TableCell>
+                                                    <TableCell>{message.recipient_id}</TableCell>
+                                                    <TableCell className="max-w-[200px] truncate">{message.message}</TableCell>
+                                                    <TableCell>{rawMatch ? "Yes" : "No"}</TableCell>
+                                                    <TableCell>{numMatch ? "Yes" : "No"}</TableCell>
+                                                    <TableCell>{formatTime(message.created_at)}</TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    )}
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100%-4rem)]">
                         {/* Users list */}
@@ -284,29 +371,35 @@ const Communication: React.FC<CommunicationProps> = ({
                                                 </div>
                                             ) : (
                                                 <div className="space-y-4">
-                                                    {messages.map((message) => (
-                                                        <div
-                                                            key={message.message_id}
-                                                            className={`flex ${
-                                                                message.sender_id === authUser.user_id
-                                                                    ? "justify-end"
-                                                                    : "justify-start"
-                                                            }`}
-                                                        >
+                                                    {messages.map((message) => {
+                                                        const numSenderId = Number(message.sender_id);
+                                                        const numCurrentUserId = Number(currentUserId);
+                                                        const fromCurrentUser = numSenderId === numCurrentUserId;
+                                                        
+                                                        return (
                                                             <div
-                                                                className={`max-w-md p-3 rounded-lg ${
-                                                                    message.sender_id === authUser.user_id
-                                                                        ? "bg-primary text-primary-foreground"
-                                                                        : "bg-accent text-accent-foreground"
-                                                                }`}
+                                                                key={message.message_id}
+                                                                className={`flex ${fromCurrentUser ? "justify-end" : "justify-start"}`}
                                                             >
-                                                                <p className="break-words">{message.message}</p>
-                                                                <p className="text-xs mt-1 opacity-70 text-right">
-                                                                    {formatTime(message.created_at)}
-                                                                </p>
+                                                                <div
+                                                                    className={`max-w-md p-3 rounded-lg ${
+                                                                        fromCurrentUser
+                                                                            ? "bg-blue-600 text-white"
+                                                                            : "bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-gray-100"
+                                                                    }`}
+                                                                >
+                                                                    <p className="break-words">{message.message}</p>
+                                                                    <p className={`text-xs mt-1 text-right ${
+                                                                        fromCurrentUser 
+                                                                            ? "text-blue-100" 
+                                                                            : "text-gray-500 dark:text-gray-400"
+                                                                    }`}>
+                                                                        {formatTime(message.created_at)}
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                     <div ref={messagesEndRef} />
                                                 </div>
                                             )}
