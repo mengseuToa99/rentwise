@@ -43,4 +43,4 @@ pnpm-debug.log*
 # Docker specific
 Dockerfile
 docker-compose.yml
-/docker
+# /docker
