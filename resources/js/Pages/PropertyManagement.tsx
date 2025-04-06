@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import RootLayout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, ChevronsUpDown, MoreVertical } from "lucide-react";
+import { MapPin, ChevronsUpDown, MoreVertical, Calendar } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
   Collapsible,
@@ -24,14 +24,55 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { propertyService } from "@/services/api/properties";
 import { toast } from "sonner";
-import { PropertyFormData, Room } from "@/services/api/types/property";
+import { PropertyFormData, Room, TenantAssignment } from "@/services/api/types/property";
 
 const PropertyManagement: React.FC = () => {
   const [properties, setProperties] = useState<PropertyFormData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [tenantAssignData, setTenantAssignData] = useState({
+    userId: "",
+    startDate: new Date(),
+    endDate: new Date(new Date().setMonth(new Date().getMonth() + 12)), // Default to 12 months lease
+    propertyId: 0,
+    roomId: 0,
+    leaseFile: undefined as File | undefined  // Changed from File | null to File | undefined
+  });
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const addPropertyUrl = "addProperty";
 
   const fetchProperties = async () => {
@@ -200,6 +241,79 @@ const PropertyManagement: React.FC = () => {
       toast.error("Failed to permanently delete unit");
     }
   };
+  
+  const handleOpenAssignTenant = (propertyId: number, roomId: number) => {
+    // Find the property and room
+    const property = properties.find(p => p.property_id === propertyId);
+    const room = property?.rooms.find(r => r.room_id === roomId);
+    
+    // Check if we're updating an existing tenant or assigning a new one
+    const isNewAssignment = room?.available === 1;
+    
+    // If updating, we might want to pre-fill with existing tenant data
+    // This would require an additional API call to get tenant details
+    // For now, we'll just set empty values and let the user fill them in
+    
+    setTenantAssignData({
+      ...tenantAssignData,
+      propertyId,
+      roomId,
+      userId: "",
+      startDate: new Date(),
+      endDate: new Date(new Date().setMonth(new Date().getMonth() + 12)),
+      leaseFile: undefined
+    });
+    
+    // You could add code here to fetch existing tenant info if it's an update
+    
+    setIsAssignDialogOpen(true);
+  };
+  
+  const handleAssignTenant = async () => {
+    try {
+      // Validate the form data
+      if (!tenantAssignData.userId) {
+        toast.error("Please enter a tenant user ID");
+        return;
+      }
+      
+      if (tenantAssignData.startDate >= tenantAssignData.endDate) {
+        toast.error("End date must be after start date");
+        return;
+      }
+      
+      // Call API to assign tenant to unit
+      // This is a placeholder - you'll need to implement the actual API call
+      await propertyService.assignTenant({
+        propertyId: tenantAssignData.propertyId,
+        roomId: tenantAssignData.roomId,
+        tenantId: parseInt(tenantAssignData.userId),
+        startDate: tenantAssignData.startDate,
+        endDate: tenantAssignData.endDate,
+        leaseAgreement: tenantAssignData.leaseFile
+      });
+      
+      // Update local state to mark unit as occupied
+      setProperties(prev => prev.map(property => 
+        property.property_id === tenantAssignData.propertyId 
+          ? {
+              ...property,
+              rooms: property.rooms.map(room => 
+                room.room_id === tenantAssignData.roomId
+                  ? { ...room, available: false }
+                  : room
+              )
+            }
+          : property
+      ));
+      
+      toast.success("Tenant assigned successfully");
+      setIsAssignDialogOpen(false);
+    } catch (error: any) {
+      console.error("Failed to assign tenant:", error);
+      toast.error("Failed to assign tenant: " + error.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -342,6 +456,19 @@ const PropertyManagement: React.FC = () => {
                                       Edit Unit
                                     </a>
                                   </DropdownMenuItem>
+                                  {unit.available === 1 ? (
+                                    <DropdownMenuItem
+                                      onSelect={() => handleOpenAssignTenant(property.property_id, unit.room_id)}
+                                    >
+                                      Assign Tenant
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      onSelect={() => handleOpenAssignTenant(property.property_id, unit.room_id)}
+                                    >
+                                      Update Tenant Info
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem
                                     onSelect={() => handleDeleteUnit(property.property_id, unit.room_id)}
                                   >
@@ -360,6 +487,128 @@ const PropertyManagement: React.FC = () => {
             );
           })}
         </div>
+        
+        {/* Tenant Assignment Dialog */}
+        <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Assign Tenant to Unit</DialogTitle>
+              <DialogDescription>
+                Enter tenant details and lease period to assign them to this unit.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="tenantId" className="text-right">
+                  Tenant ID
+                </Label>
+                <Input
+                  id="tenantId"
+                  value={tenantAssignData.userId}
+                  onChange={(e) => setTenantAssignData({...tenantAssignData, userId: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="startDate" className="text-right">
+                  Start Date
+                </Label>
+                <div className="col-span-3">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {tenantAssignData.startDate ? (
+                          format(tenantAssignData.startDate, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComponent
+                        mode="single"
+                        selected={tenantAssignData.startDate}
+                        onSelect={(date) => date && setTenantAssignData({...tenantAssignData, startDate: date})}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="endDate" className="text-right">
+                  End Date
+                </Label>
+                <div className="col-span-3">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {tenantAssignData.endDate ? (
+                          format(tenantAssignData.endDate, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <CalendarComponent
+                        mode="single"
+                        selected={tenantAssignData.endDate}
+                        onSelect={(date) => date && setTenantAssignData({...tenantAssignData, endDate: date})}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="leaseAgreement" className="text-right">
+                  Lease Document
+                </Label>
+                <div className="col-span-3">
+                  <Input
+                    id="leaseAgreement"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        setTenantAssignData({...tenantAssignData, leaseFile: files[0]});
+                      } else {
+                        setTenantAssignData({...tenantAssignData, leaseFile: undefined});
+                      }
+                    }}
+                    className="col-span-3"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Optional: Upload lease agreement document (PDF, DOC, DOCX)
+                  </p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleAssignTenant}>
+                {tenantAssignData.propertyId && 
+                 properties.find(p => p.property_id === tenantAssignData.propertyId)?.
+                 rooms.find(r => r.room_id === tenantAssignData.roomId)?.available === 1 
+                  ? "Assign Tenant" 
+                  : "Update Tenant"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </RootLayout>
   );

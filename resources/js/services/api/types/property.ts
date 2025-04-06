@@ -30,7 +30,7 @@ interface Room {
   due_date: string;
   description: string;
   room_type: string;
-  available: number;
+  available: number; // This is a number (0 or 1) not a boolean
   rent_amount: string;
   utility_readings?: UtilityReading[];
 }
@@ -63,3 +63,84 @@ interface FormValues {
   roomDueDate: Date | undefined;
   available: boolean;
 }
+
+// New interface for the Tenant Assignment
+interface TenantAssignment {
+  propertyId: number;
+  roomId: number;
+  tenantId: number;
+  startDate: Date;
+  endDate: Date;
+  leaseAgreement?: File;  // Changed from File | null to File | undefined
+}
+
+// API response interfaces
+interface TenantAssignmentResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    rental_id: number;
+    landlord_id: number;
+    tenant_id: number;
+    room_id: number;
+    start_date: string;
+    end_date: string;
+    lease_agreement?: string;
+    created_at: string;
+    updated_at: string;
+  };
+}
+
+interface DeleteRoomParams {
+  propertyId: number;
+  floorNumber: number;
+  roomNumber: number;
+}
+
+// New enhanced PropertyFormData interface including all property data
+interface PropertyFormData extends Property {
+  // Additional fields that might be needed for forms
+  landlord_id?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// API response for tenant information
+interface TenantInfoResponse {
+  status: string;
+  data: TenantInfo;
+}
+
+// Tenant information interface
+interface TenantInfo {
+  rental_id: number;
+  landlord_id: number;
+  tenant_id: number;
+  room_id: number;
+  start_date: string;
+  end_date: string;
+  lease_agreement?: string;
+  created_at: string;
+  updated_at: string;
+  tenant?: {
+    user_id: number;
+    name: string;
+    email: string;
+    phone?: string;
+  };
+}
+
+export type {
+  UtilityPrice,
+  Utility,
+  Room,
+  UtilityReading,
+  Property,
+  FormValues,
+  TenantAssignment,
+  TenantAssignmentResponse,
+  DeleteRoomParams,
+  PropertyFormData,
+  TenantInfo,
+  TenantInfoResponse
+};
