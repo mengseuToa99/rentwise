@@ -25,7 +25,14 @@ class RentalDetail extends Model
     public function tenant()
     {
         return $this->belongsTo(UserDetail::class, 'tenant_id');
+
     }
+
+    public function invoiceDetails()
+    {
+        return $this->hasMany(InvoiceDetail::class, 'rental_id');
+    }
+
 
     public function room()
     {

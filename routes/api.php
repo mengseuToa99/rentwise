@@ -74,7 +74,7 @@ Route::group(['prefix' => '/rentwise'], function () {
     // In routes/api.php
         Route::post('/utility-readings', [InvoiceController::class, 'inputUtilityReadings']);
         Route::get('/invoices/{invoiceId}', [InvoiceController::class, 'show']);
-        Route::get('/invoices-all/{invoiceId}', [InvoiceController::class, 'getAllMonthlyInvoices']);
+        Route::get('/rentals/{rentalId}/invoices', [InvoiceController::class, 'getAllMonthlyInvoices']);
         Route::get('/invoices-due/{invoiceId}', [InvoiceController::class, 'getDueUtilityReadings']);
         
         

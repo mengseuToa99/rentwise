@@ -8,6 +8,7 @@ use App\Models\UserDetail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -69,6 +70,11 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Get valid roles from database to use in validation
+        $validRoles = Role::pluck('role_name')->map(function ($role) {
+            return strtolower($role);
+        })->toArray();
+    
         $validated = $request->validate([
             'username' => 'required|unique:user_detail',
             'password_hash' => 'required|min:6',
@@ -78,7 +84,10 @@ class UserController extends Controller
             'id_card_picture' => 'nullable|string',
             'first_name' => 'required|string',
             'last_name' => 'required|string',
-            'role' => 'required|in:renter,landlord,admin', // Updated valid roles
+            'role' => [
+                'required',
+                Rule::in($validRoles)
+            ],
         ]);
     
         try {
@@ -97,22 +106,20 @@ class UserController extends Controller
                 'status' => 'active',
             ]);
     
-            // Add debug logging
-            \Log::info('Looking for role:', ['role_name' => $validated['role']]);
-            
-            // Get role ID and add error handling
-            $role = Role::where('role_name', $validated['role'])->first();
-            
+            // Normalize role name (case insensitive match)
+            $roleName = strtolower($validated['role']);
+            $role = Role::whereRaw('LOWER(role_name) = ?', [$roleName])->first();
+    
             if (!$role) {
                 DB::rollBack();
-                \Log::error('Role not found:', ['role_name' => $validated['role']]);
+                Log::error('Role not found:', ['role_name' => $roleName]);
                 return response()->json([
                     'error' => 'Role not found',
                     'available_roles' => Role::pluck('role_name')
                 ], 400);
             }
     
-            // Assign role using sync without detaching
+            // Assign role
             $user->roles()->syncWithoutDetaching([$role->role_id]);
     
             DB::commit();
@@ -124,7 +131,7 @@ class UserController extends Controller
     
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('User creation failed:', [
+            Log::error('User creation failed:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

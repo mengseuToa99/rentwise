@@ -15,4 +15,9 @@ class InvoiceDetail extends Model
     {
         return $this->belongsTo(RentalDetail::class, 'rental_id');
     }
+
+    public function utilityUsages()
+{
+    return $this->hasMany(UtilityUsage::class, 'invoice_id');
+}
 }

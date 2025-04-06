@@ -157,96 +157,31 @@ class InvoiceController extends Controller
     public function getAllMonthlyInvoices($rentalId)
     {
         try {
-            // Fetch the rental details
+            // Validate rental exists
             $rental = RentalDetail::with(['room', 'tenant'])
                 ->findOrFail($rentalId);
-
-            // Get the start date of the rental
-            $startDate = Carbon::parse($rental->start_date);
-            $endDate = Carbon::now();
-
-            // If there's an end date, use that instead
-            if ($rental->end_date) {
-                $endDate = Carbon::parse($rental->end_date);
+    
+            // Get all invoices for this rental, ordered by due date
+            $invoices = InvoiceDetail::where('rental_id', $rentalId)
+                ->orderBy('due_date', 'asc')
+                ->get();
+    
+            // If no invoices found, return empty response
+            if ($invoices->isEmpty()) {
+                return response()->json([
+                    'message' => 'No invoices found for this rental',
+                    'rental_id' => $rentalId,
+                    'invoices' => []
+                ]);
             }
-
-            // Create a collection for all months
-            $allMonths = [];
-            $currentDate = $startDate->copy()->startOfMonth();
-
-            // Loop through all months from start date to end date
-            while ($currentDate->lte($endDate)) {
-                // Get the utility usages for this month
-                $utilityUsages = UtilityUsage::where('room_id', $rental->room_id)
-                    ->whereBetween('usage_date', [
-                        $currentDate->copy()->startOfMonth()->toDateTimeString(),
-                        $currentDate->copy()->endOfMonth()->toDateTimeString()
-                    ])
-                    ->get();
-
-                // Prepare utility details for this month
-                $utilityDetails = $utilityUsages->map(function ($usage) {
-                    // Find the utility
-                    $utility = Utility::find($usage->utility_id);
-
-                    if (!$utility) {
-                        return null; // Skip if utility is not found
-                    }
-
-                    // Get the price for this utility
-                    $utilityPrice = UtilityPrice::where('utility_id', $utility->utility_id)
-                        ->where('effective_date', '<=', $usage->usage_date)
-                        ->orderBy('effective_date', 'desc')
-                        ->first();
-
-                    return [
-                        'utility_name' => $utility->utility_name,
-                        'old_reading' => $usage->old_meter_reading,
-                        'new_reading' => $usage->new_meter_reading,
-                        'consumption' => $usage->amount_used,
-                        'unit_price' => $utilityPrice->price ?? 0,
-                        'total_utility_cost' => $usage->amount_used * ($utilityPrice->price ?? 0)
-                    ];
-                })->filter(); // Remove null values
-
-                // Calculate total utility cost for this month
-                $totalUtilityCost = $utilityDetails->sum('total_utility_cost');
-
-                // Check if there's an invoice for this month
-                $invoice = InvoiceDetail::where('rental_id', $rentalId)
-                    ->whereYear('due_date', $currentDate->year)
-                    ->whereMonth('due_date', $currentDate->month)
-                    ->first();
-
-                // Prepare month details
-                $monthDetails = [
-                    'month' => $currentDate->format('F Y'),
-                    'month_number' => $currentDate->format('n'),
-                    'year' => $currentDate->year,
-                    'utilities' => $utilityDetails,
-                    'financial_summary' => [
-                        'room_rent' => $rental->room->rent_amount,
-                        'total_utility_cost' => $totalUtilityCost,
-                        'total_amount_due' => $rental->room->rent_amount + $totalUtilityCost
-                    ],
-                    'invoice_details' => $invoice ? [
-                        'invoice_id' => $invoice->invoice_id,
-                        'due_date' => $invoice->due_date,
-                        'payment_status' => $invoice->payment_status,
-                        'payment_method' => $invoice->payment_method
-                    ] : null
-                ];
-
-                $allMonths[] = $monthDetails;
-                $currentDate->addMonth();
-            }
-
-            // Prepare the response
+    
+            // Format the response
             $response = [
                 'rental_id' => $rental->rental_id,
                 'tenant' => [
                     'id' => $rental->tenant->user_id,
-                    'name' => $rental->tenant->first_name . ' ' . $rental->tenant->last_name
+                    'name' => $rental->tenant->first_name . ' ' . $rental->tenant->last_name,
+                    'email' => $rental->tenant->email
                 ],
                 'room' => [
                     'room_id' => $rental->room_id,
@@ -258,17 +193,38 @@ class InvoiceController extends Controller
                     'start_date' => $rental->start_date,
                     'end_date' => $rental->end_date
                 ],
-                'months' => $allMonths
+                'invoices' => $invoices->map(function ($invoice) {
+                    return [
+                        'invoice_id' => $invoice->invoice_id,
+                        'invoice_number' => $invoice->invoice_number,
+                        'amount_due' => $invoice->amount_due,
+                        'due_date' => $invoice->due_date,
+                        'issued_date' => $invoice->created_at,
+                        'payment_status' => $invoice->payment_status,
+                        'payment_method' => $invoice->payment_method,
+                        'paid_at' => $invoice->paid_at,
+                        'notes' => $invoice->notes
+                    ];
+                })
             ];
-
+    
             return response()->json($response);
+    
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'Rental not found',
+                'message' => 'No rental found with ID: ' . $rentalId
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
-                'error' => 'Failed to retrieve monthly invoices',
-                'details' => $e->getMessage()
+                'error' => 'Failed to retrieve invoices',
+                'message' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTrace() : null
             ], 500);
         }
     }
+
+
     /**
      * Route method to handle invoice detail retrieval
      */
@@ -286,76 +242,131 @@ class InvoiceController extends Controller
     public function inputUtilityReadings(Request $request)
     {
         $request->validate([
-            'property_id' => 'required|exists:property_detail,property_id',
-            'room_id' => 'required|exists:room_detail,room_id',
+            'rental_id' => 'required|exists:rental_detail,rental_id',
             'utility_readings' => 'required|array',
             'readings_date' => 'required|date',
-            'payment_method' => 'in:cash,credit_card,bank_transfer' // Optional validation
+            'payment_method' => 'nullable|in:cash,credit_card,bank_transfer'
         ]);
-
+    
         try {
             DB::beginTransaction();
-
-            // Validate that the room belongs to the specified property
-            $room = RoomDetail::where('room_id', $request->room_id)
-                ->where('property_id', $request->property_id)
-                ->first();
-
-            if (!$room) {
-                return response()->json([
-                    'error' => 'Room does not belong to the specified property'
-                ], 400);
-            }
-
-            // Find active rental for the room
-            $rental = RentalDetail::where('room_id', $request->room_id)
-                ->where('start_date', '<', now())
-                ->first();
-
+    
+            // Find the rental
+            $rental = RentalDetail::find($request->rental_id);
+    
             if (!$rental) {
                 return response()->json([
-                    'error' => 'No active rental found for this room'
+                    'error' => 'Rental not found'
                 ], 404);
             }
-
+    
+            // Get previous readings for comparison
+            $previousReadings = [];
+            $utilityUsages = UtilityUsage::where('room_id', $rental->room_id)
+                ->latest('usage_date')
+                ->get()
+                ->groupBy('utility_id');
+                
+            foreach ($utilityUsages as $utilityId => $usages) {
+                if ($usages->isNotEmpty()) {
+                    $previousReadings[$utilityId] = [
+                        'reading' => $usages->first()->new_meter_reading,
+                        'date' => $usages->first()->usage_date
+                    ];
+                }
+            }
+    
             // Calculate total utility cost and save utility usage
-            $totalUtilityCost = $this->calculateUtilityCost(
-                $request->room_id,
+            list($totalUtilityCost, $utilityDetails) = $this->calculateUtilityCost(
+                $rental->room_id, // Get room_id from rental
                 $request->utility_readings,
-                $request->readings_date
+                $request->readings_date,
+                $previousReadings
             );
-
+    
             // Generate invoice
             $invoice = $this->generateMonthlyInvoice(
                 $rental,
                 $totalUtilityCost,
                 $request->readings_date,
-                $request->input('payment_method', 'cash') // Default to 'cash' if not provided
+                $request->input('payment_method', 'cash')
             );
-
+    
             DB::commit();
-
+    
             return response()->json([
                 'message' => 'Utility readings recorded and invoice generated',
-                'invoice' => $invoice
+                'invoice' => $invoice,
+                'utility_details' => $utilityDetails,
+                'previous_readings' => $previousReadings
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'error' => 'Failed to process utility readings',
-                'details' => $e->getMessage()
+                'details' => $e->getMessage(),
+                'trace' => env('APP_DEBUG') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
 
-    /**
-     * Calculate utility costs based on readings
-     *
-     * @param int $roomId
-     * @param array $newReadings
-     * @param string $readingsDate
-     * @return float
-     */
+
+//     protected function calculateUtilityCost($roomId, $utilityReadings, $readingsDate, $previousReadings = [])
+// {
+//     $totalCost = 0;
+//     $utilityDetails = [];
+    
+//     foreach ($utilityReadings as $utilityType => $currentReading) {
+//         $utilityId = $this->getUtilityIdFromType($utilityType);
+        
+//         if (!$utilityId) {
+//             continue; // Skip unknown utility types
+//         }
+        
+//         // Get previous reading or default to 0
+//         $previousReading = isset($previousReadings[$utilityId]) ? 
+//             (float) $previousReadings[$utilityId]['reading'] : 0;
+        
+//         // Calculate consumption
+//         $consumption = (float) $currentReading - $previousReading;
+        
+//         // Get rate for this utility type
+//         $utilityRate = UtilityRate::where('utility_id', $utilityId)->first();
+//         $rate = $utilityRate ? $utilityRate->rate_per_unit : 0;
+        
+//         // Calculate cost
+//         $cost = $consumption * $rate;
+//         $totalCost += $cost;
+        
+//         // Save utility usage
+//         UtilityUsage::create([
+//             'room_id' => $roomId,
+//             'utility_id' => $utilityId,
+//             'usage_date' => $readingsDate,
+//             'old_meter_reading' => $previousReading,
+//             'new_meter_reading' => $currentReading,
+//             'amount_used' => $consumption,
+//             'cost' => $cost
+//         ]);
+        
+//         // Collect details for response
+//         $utilityDetails[] = [
+//             'utility_type_id' => $utilityId,
+//             'utility_type' => $utilityType,
+//             'previous_reading' => $previousReading,
+//             'current_reading' => $currentReading,
+//             'consumption' => $consumption,
+//             'rate' => $rate,
+//             'cost' => $cost,
+//             'previous_reading_date' => isset($previousReadings[$utilityId]) ? 
+//                 $previousReadings[$utilityId]['date'] : null
+//         ];
+//     }
+    
+//     return [$totalCost, $utilityDetails];
+// }
+
+
     private function calculateUtilityCost($roomId, $newReadings, $readingsDate)
     {
         $totalUtilityCost = 0;
