@@ -73,18 +73,16 @@ Route::group(['prefix' => '/rentwise'], function () {
         // get invoice cutomer
     // In routes/api.php
         Route::post('/utility-readings', [InvoiceController::class, 'inputUtilityReadings']);
-        Route::get('/invoices/{invoiceId}', [InvoiceController::class, 'show']);
+        Route::get('/invoices/{invoiceId}', [InvoiceController::class, 'getInvoicesByTenant']);
         Route::get('/rentals/{rentalId}/invoices', [InvoiceController::class, 'getAllMonthlyInvoices']);
         Route::get('/invoices-due/{invoiceId}', [InvoiceController::class, 'getDueUtilityReadings']);
         
-        
-        
-        
-
         Route::get('/inbox', [MessageController::class, 'inbox'])->name('inbox');
         Route::post('/message/{userId}', [MessageController::class, 'store'])->name('message.store');
         Route::get('/message/{userId}', [MessageController::class, 'show'])->name('message.show');
 
+
+        
     //     Route::get('/properties', 'PropertyController@index')
     // ->middleware('permission:view_property');
 

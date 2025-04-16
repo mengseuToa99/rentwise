@@ -17,7 +17,16 @@ class InvoiceDetail extends Model
     }
 
     public function utilityUsages()
+
+    
 {
-    return $this->hasMany(UtilityUsage::class, 'invoice_id');
+    return $this->hasManyThrough(
+        UtilityUsage::class,
+        RentalDetail::class,
+        'rental_id', // Foreign key on rental_detail table
+        'room_id',   // Foreign key on utility_usage table
+        'rental_id', // Local key on invoice_detail table
+        'room_id'    // Local key on rental_detail table
+    );
 }
 }

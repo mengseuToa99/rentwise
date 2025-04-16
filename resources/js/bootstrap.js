@@ -10,11 +10,12 @@ window.Pusher = Pusher;
 
 window.Echo = new Echo({
     broadcaster: 'pusher',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
+    key: import.meta.env.VITE_REVERB_APP_KEY || '10dc18242dcad8e307f5cef527f63491',
     wsHost: window.location.hostname,
     wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
     wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
     forceTLS: false,
     disableStats: true,
     enabledTransports: ['ws', 'wss'],
+    cluster: 'mt1',
 });

@@ -37,32 +37,29 @@ class MessageController extends Controller
     public function store(Request $request, $userId)
     {
         try {
-            // Find the recipient user
             $recipientUser = UserDetail::where('user_id', $userId)->first();
             
             if (!$recipientUser) {
                 return response()->json(['error' => 'Recipient user not found'], 404);
             }
             
-            // Validate the request
             $validatedData = $request->validate([
                 'message' => 'required|string',
             ]);
             
-            // Create a new Message instance
             $message = new Communication();
             $message->sender_id = Auth::user()->user_id;
             $message->receiver_id = $recipientUser->user_id;
             $message->message = $validatedData['message'];
             $message->save();
             
-            // REMOVED: broadcast(new MessageSent($message))->toOthers();
+            // Broadcast the message to both users
+            broadcast(new MessageSent($message))->toOthers();
             
-            // Return the created message as JSON response
             return response()->json($message);
         } catch (\Exception $e) {
             \Log::error('Message sending failed: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to send message. Please try again. Error: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to send message'], 500);
         }
     }
     /**
