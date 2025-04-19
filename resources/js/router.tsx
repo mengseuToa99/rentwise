@@ -13,6 +13,7 @@ import Report from './Pages/Report';
 import Maintenance from './Pages/Maintenance';
 import EditProperty from './Pages/EditProperty';
 import EditUnit from './Pages/EditUnit';
+import InvoiceManagement from './Pages/InvoiceManagement';
 
 const AppRouter: React.FC = () => {
     return (
@@ -32,7 +33,7 @@ const AppRouter: React.FC = () => {
                 <Route path="/maintenance" element={<Maintenance />} />
                 <Route path="/property/editProperty/:id" element={<EditProperty />} />
                 <Route path="/property/editUnit/:propertyId/:roomId" element={<EditUnit />} />
-       
+                <Route path="/invoice" element={<InvoiceManagement />} />
                 {/* <Route path="*" element={<NotFoundPage />} /> */}
             </Routes>
         </Router>

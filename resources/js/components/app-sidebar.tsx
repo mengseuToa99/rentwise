@@ -18,6 +18,7 @@ import {
     LogOut,
     User,
     Newspaper,
+    Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "./ModeToggle";
@@ -69,6 +70,11 @@ export function AppSidebar() {
             icon: LayoutDashboard,
         },
         {
+            title: "Invoice Management",
+            url: "/invoice",
+            icon: FileText,
+        },
+        {
             title: "User Account",
             url: "/add-user",
             icon: User,
@@ -87,11 +93,6 @@ export function AppSidebar() {
             title: "Report",
             url: "/report",
             icon: Newspaper,
-        },
-        {
-            title: "Invoices",
-            url: "/report",
-            icon: FileText,
         },
         {
             title: "Setting",
