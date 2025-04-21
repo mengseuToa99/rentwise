@@ -68,3 +68,11 @@ export interface ResponseData {
   landlord_id: string;
   tenants: Tenant[];
 }
+
+export interface PaymentData {
+  payment_method?: string;
+  payment_date?: string;
+  payment_reference?: string;
+  payment_amount?: string;
+  payment_notes?: string;
+}

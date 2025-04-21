@@ -98,18 +98,18 @@ const InvoiceFlipCard: React.FC<InvoiceFlipCardProps> = ({ invoice, onMarkAsPaid
   };
 
   return (
-    <div className="perspective-1000 h-64 w-full" onClick={handleFlip}>
+    <div className="perspective-1000 h-[28rem] w-full" onClick={handleFlip}>
       <div className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${
         isFlipped ? "rotate-y-180" : ""
       }`}>
         {/* Front of the card */}
         <div className={`absolute w-full h-full backface-hidden ${
           isFlipped ? "invisible" : "visible"
-        } bg-card rounded-xl shadow border p-4 flex flex-col cursor-pointer`}>
-          <div className="flex justify-between items-start mb-4">
+        } bg-card rounded-xl shadow border p-6 flex flex-col cursor-pointer`}>
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-card-foreground">Invoice #{invoice.invoice_id}</h3>
-              <p className="text-sm text-muted-foreground">{formatBillingMonth(invoice.billing_month)}</p>
+              <h3 className="text-2xl font-semibold text-card-foreground">Invoice #{invoice.invoice_id}</h3>
+              <p className="text-base text-muted-foreground mt-1">{formatBillingMonth(invoice.billing_month)}</p>
             </div>
             <div className="flex flex-col items-end">
               {getStatusBadge(invoice.payment_status)}
@@ -117,52 +117,51 @@ const InvoiceFlipCard: React.FC<InvoiceFlipCardProps> = ({ invoice, onMarkAsPaid
             </div>
           </div>
           
-          <div className="flex-grow grid grid-cols-2 gap-3">
-            <div className="flex items-center text-sm">
-              <User className="mr-2 h-4 w-4 text-muted-foreground" />
+          <div className="flex-grow grid grid-cols-2 gap-6 py-3">
+            <div className="flex items-center text-lg">
+              <User className="mr-3 h-5 w-5 text-muted-foreground" />
               <span className="text-muted-foreground">Tenant:</span>
-              <span className="ml-1 font-medium text-card-foreground truncate">{invoice.tenant_name}</span>
+              <span className="ml-2 font-medium text-card-foreground truncate">{invoice.tenant_name}</span>
             </div>
             
-            <div className="flex items-center text-sm">
-              <Home className="mr-2 h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center text-lg">
+              <Home className="mr-3 h-5 w-5 text-muted-foreground" />
               <span className="text-muted-foreground">Room:</span>
-              <span className="ml-1 font-medium text-card-foreground truncate">
+              <span className="ml-2 font-medium text-card-foreground truncate">
                 {invoice.room_number}, {invoice.property_name}
               </span>
             </div>
             
-            <div className="flex items-center text-sm">
-              <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center text-lg">
+              <Calendar className="mr-3 h-5 w-5 text-muted-foreground" />
               <span className="text-muted-foreground">Due:</span>
-              <span className="ml-1 font-medium text-card-foreground">{formatDate(invoice.due_date)}</span>
+              <span className="ml-2 font-medium text-card-foreground">{formatDate(invoice.due_date)}</span>
             </div>
             
-            <div className="flex items-center text-sm">
-              <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center text-lg">
+              <DollarSign className="mr-3 h-5 w-5 text-muted-foreground" />
               <span className="text-muted-foreground">Amount:</span>
-              <span className="ml-1 font-medium text-card-foreground">{formatCurrency(invoice.amount_due)}</span>
+              <span className="ml-2 font-medium text-card-foreground">{formatCurrency(invoice.amount_due)}</span>
             </div>
           </div>
           
-          <div className="mt-4 flex justify-between items-center">
+          <div className="mt-6 flex justify-between items-center">
             {invoice.payment_status !== "paid" && (
               <Button 
                 variant="outline" 
-                size="sm" 
                 className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
                 onClick={(e) => {
                   e.stopPropagation();
                   onMarkAsPaid(invoice);
                 }}
               >
-                <CheckCircle className="mr-1 h-4 w-4" />
+                <CheckCircle className="mr-2 h-4 w-4" />
                 Mark as Paid
               </Button>
             )}
-            <div className="ml-auto flex items-center gap-1 text-muted-foreground text-sm">
+            <div className="ml-auto flex items-center gap-2 text-muted-foreground text-base">
               <span>Click to view details</span>
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw className="h-4 w-4" />
             </div>
           </div>
         </div>
@@ -170,11 +169,11 @@ const InvoiceFlipCard: React.FC<InvoiceFlipCardProps> = ({ invoice, onMarkAsPaid
         {/* Back of the card */}
         <div className={`absolute w-full h-full backface-hidden rotate-y-180 ${
           isFlipped ? "visible" : "invisible"
-        } bg-card rounded-xl shadow border p-4 flex flex-col cursor-pointer overflow-hidden`}>
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="text-lg font-semibold text-card-foreground">Invoice Details</h3>
+        } bg-card rounded-xl shadow border p-6 flex flex-col cursor-pointer`}>
+          <div className="flex justify-between items-start">
+            <h3 className="text-2xl font-semibold text-card-foreground">Invoice Details</h3>
             <X 
-              className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground" 
+              className="h-6 w-6 cursor-pointer text-muted-foreground hover:text-foreground" 
               onClick={(e) => {
                 e.stopPropagation();
                 setIsFlipped(false);
@@ -182,43 +181,45 @@ const InvoiceFlipCard: React.FC<InvoiceFlipCardProps> = ({ invoice, onMarkAsPaid
             />
           </div>
           
-          <div className="flex-1 overflow-auto">
-            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-              <div>
-                <p className="text-muted-foreground">Invoice Date:</p>
-                <p className="font-medium">{formatDate(invoice.invoice_date)}</p>
+          <div className="h-full flex flex-col justify-between mt-4">
+            <div>
+              <div className="grid grid-cols-2 gap-5 text-base mb-5">
+                <div>
+                  <p className="text-muted-foreground">Invoice Date:</p>
+                  <p className="font-medium text-lg">{formatDate(invoice.invoice_date)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Due Date:</p>
+                  <p className="font-medium text-lg">{formatDate(invoice.due_date)}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-muted-foreground">Due Date:</p>
-                <p className="font-medium">{formatDate(invoice.due_date)}</p>
-              </div>
-            </div>
-            
-            <div className="space-y-1 mb-3">
-              <h4 className="text-sm font-semibold">Breakdown</h4>
-              <div className="bg-muted/30 p-2 rounded-md space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Rent</span>
-                  <span>{formatCurrency(invoice.amount_breakdown.rent)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Utilities</span>
-                  <span>{formatCurrency(invoice.amount_breakdown.utilities)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Other Charges</span>
-                  <span>{formatCurrency(invoice.amount_breakdown.other_charges)}</span>
-                </div>
-                <div className="border-t border-border mt-1 pt-1">
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span>Total</span>
-                    <span>{formatCurrency(invoice.amount_breakdown.total)}</span>
+              
+              <div className="mb-5">
+                <h4 className="text-lg font-semibold mb-2">Breakdown</h4>
+                <div className="bg-muted/30 p-4 rounded-md">
+                  <div className="flex justify-between text-base mb-2">
+                    <span>Rent</span>
+                    <span>{formatCurrency(invoice.amount_breakdown.rent)}</span>
+                  </div>
+                  <div className="flex justify-between text-base mb-2">
+                    <span>Utilities</span>
+                    <span>{formatCurrency(invoice.amount_breakdown.utilities)}</span>
+                  </div>
+                  <div className="flex justify-between text-base mb-2">
+                    <span>Other Charges</span>
+                    <span>{formatCurrency(invoice.amount_breakdown.other_charges)}</span>
+                  </div>
+                  <div className="border-t border-border mt-2 pt-2">
+                    <div className="flex justify-between text-lg font-semibold">
+                      <span>Total</span>
+                      <span>{formatCurrency(invoice.amount_breakdown.total)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="flex justify-between items-center text-sm">
+            <div className="flex justify-between items-center text-base">
               <div>
                 <span className="text-muted-foreground">Status: </span>
                 <span>{getStatusBadge(invoice.payment_status)}</span>
