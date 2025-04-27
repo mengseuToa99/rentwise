@@ -19,29 +19,38 @@ class PermissionSeeder extends Seeder
         $now = Carbon::now();
 
         // Create roles
-        $adminRoleId = DB::table('roles')->insertGetId([
-            'role_name' => 'Admin',
-            'description' => 'System administrator with full access to all features',
-            'created_at' => $now,
-            'updated_at' => $now,
-            'parent_role_id' => null
-        ]);
+        $adminRole = DB::table('roles')->updateOrInsert(
+            ['role_name' => 'Admin'],
+            [
+                'description' => 'System administrator with full access to all features',
+                'created_at' => $now,
+                'updated_at' => $now,
+                'parent_role_id' => null
+            ]
+        );
+        $adminRoleId = DB::table('roles')->where('role_name', 'Admin')->value('role_id');
 
-        $landlordRoleId = DB::table('roles')->insertGetId([
-            'role_name' => 'Landlord',
-            'description' => 'Property owner with management capabilities',
-            'created_at' => $now,
-            'updated_at' => $now,
-            'parent_role_id' => null
-        ]);
+        $landlordRole = DB::table('roles')->updateOrInsert(
+            ['role_name' => 'Landlord'],
+            [
+                'description' => 'Property owner with management capabilities',
+                'created_at' => $now,
+                'updated_at' => $now,
+                'parent_role_id' => null
+            ]
+        );
+        $landlordRoleId = DB::table('roles')->where('role_name', 'Landlord')->value('role_id');
 
-        $tenantRoleId = DB::table('roles')->insertGetId([
-            'role_name' => 'Tenant',
-            'description' => 'Property renter with limited access',
-            'created_at' => $now,
-            'updated_at' => $now,
-            'parent_role_id' => null
-        ]);
+        $tenantRole = DB::table('roles')->updateOrInsert(
+            ['role_name' => 'Tenant'],
+            [
+                'description' => 'Property renter with limited access',
+                'created_at' => $now,
+                'updated_at' => $now,
+                'parent_role_id' => null
+            ]
+        );
+        $tenantRoleId = DB::table('roles')->where('role_name', 'Tenant')->value('role_id');
 
         // Create permission groups
         $permissionGroups = [

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePropertyRequest;
 use App\Models\PropertyDetail;
 use App\Models\RoomDetail;
 use App\Models\Utility;
 use App\Models\UtilityPrice;
 use App\Models\UtilityUsage;
+use App\Models\Rental;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +40,7 @@ class PropertyController extends Controller
     //     }
 
     //     try {
-    //         \DB::beginTransaction();
+    //         DB::beginTransaction();
 
     //         // Add debugging to see what we're searching for
     //         $searchCriteria = [
@@ -76,7 +78,7 @@ class PropertyController extends Controller
 
     //         $room->delete();
 
-    //         \DB::commit();
+    //         DB::commit();
 
     //         return response()->json([
     //             'message' => 'Room deleted successfully',
@@ -84,7 +86,7 @@ class PropertyController extends Controller
     //         ], 200);
 
     //     } catch (\Exception $e) {
-    //         \DB::rollBack();
+    //         DB::rollBack();
     //         return response()->json([
     //             'message' => 'An error occurred while deleting the room',
     //             'error' => $e->getMessage(),
@@ -161,7 +163,7 @@ class PropertyController extends Controller
         // }
 
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
 
             // First delete all rooms associated with the property
             // This assumes you have set up cascade delete in your migration
@@ -171,13 +173,13 @@ class PropertyController extends Controller
             // Now delete the property
             $property->delete();
 
-            \DB::commit();
+            DB::commit();
 
             return response()->json([
                 'message' => 'Property and associated rooms deleted successfully'
             ], 200);
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'message' => 'An error occurred while deleting the property',
                 'error' => $e->getMessage()
@@ -223,7 +225,7 @@ class PropertyController extends Controller
         }
 
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
 
             // Update main property details
             $property->update($request->only([
@@ -257,7 +259,7 @@ class PropertyController extends Controller
                 }
             }
 
-            \DB::commit();
+            DB::commit();
 
             // Load the updated property with its rooms
             $property->load('rooms');
@@ -267,7 +269,7 @@ class PropertyController extends Controller
                 'message' => 'Property updated successfully'
             ], 200);
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json([
                 'message' => 'An error occurred while updating the property',
                 'error' => $e->getMessage()
@@ -473,73 +475,18 @@ class PropertyController extends Controller
 
 
     /**
-     * Store a newly created property.
+     * Store a newly created property in storage.
+     *
+     * @param StorePropertyRequest $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request)
+    public function store(StorePropertyRequest $request)
     {
-        $user = Auth::user();
-
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'User not authenticated'
-            ], 401);
-        }
-
-        // First validate basic request structure
-        $validator = Validator::make($request->all(), [
-            'property_name' => 'required|string|max:255',
-            'address' => 'required|string',
-            'location' => 'required|string',
-            'description' => 'required|string',
-            'utilities' => 'required|array',
-            'utilities.*.utility_name' => 'required|string|max:255',
-            'utilities.*.description' => 'required|string',
-            'utilities.*.price' => 'required|numeric|min:0',
-            'rooms' => 'required|array',
-            'rooms.*.floor_number' => 'required|integer|min:1',
-            'rooms.*.room_number' => 'required|integer|min:1',
-            'rooms.*.description' => 'nullable|string',
-            'rooms.*.room_type' => 'required|string|max:255',
-            'rooms.*.rent_amount' => 'required|numeric|min:0',
-            'rooms.*.utility_readings' => 'required|array',
-            'rooms.*.utility_readings.*.utility_name' => 'required|string|max:255',
-            'rooms.*.utility_readings.*.reading' => 'required|numeric|min:0',
-            'rooms.*.due_date' => 'required|date',
-            'rooms.*.available' => 'required|boolean'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Check for duplicate property
-        $existingProperty = PropertyDetail::where('landlord_id', $user->user_id)
-            ->where(function ($query) use ($request) {
-                $query->where('property_name', $request->property_name)
-                    ->where('address', $request->address)
-                    ->where('location', $request->location);
-            })
-            ->first();
-
-
-
-        if ($existingProperty) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'A property with the same name, address, and location already exists for this landlord',
-                'existing_property' => $existingProperty
-            ], 409);
-        }
-
         DB::beginTransaction();
         try {
             // Create property
             $property = PropertyDetail::create([
-                'landlord_id' => $user->user_id,
+                'landlord_id' => $request->landlord_id, // This is set in prepareForValidation()
                 'property_name' => $request->property_name,
                 'address' => $request->address,
                 'location' => $request->location,
@@ -566,53 +513,38 @@ class PropertyController extends Controller
                 $utilities[$utilityData['utility_name']] = $utility;
             }
 
-            // Create rooms and their utility readings
+            // Create rooms
             foreach ($request->rooms as $roomData) {
-                $room = new RoomDetail([
+                $room = RoomDetail::create([
+                    'property_id' => $property->property_id,
                     'floor_number' => $roomData['floor_number'],
                     'room_number' => $roomData['room_number'],
-                    'room_name' => sprintf(
-                        'F%d-%s-%s',
+                    'room_name' => sprintf('F%d-%s-%d', 
                         $roomData['floor_number'],
                         $roomData['room_type'],
                         $roomData['room_number']
                     ),
-                    'description' => $roomData['description'],
+                    'description' => $roomData['description'] ?? null,
                     'room_type' => $roomData['room_type'],
                     'rent_amount' => $roomData['rent_amount'],
                     'due_date' => $roomData['due_date'],
                     'available' => $roomData['available']
                 ]);
-
-                $property->rooms()->save($room);
-
-                // Create utility usage records for each utility
-                foreach ($roomData['utility_readings'] as $reading) {
-                    $utility = $utilities[$reading['utility_name']] ?? null;
-                    if (!$utility) {
-                        throw new \Exception("Utility {$reading['utility_name']} not found");
-                    }
-
-                    UtilityUsage::create([
-                        'room_id' => $room->room_id,
-                        'utility_id' => $utility->utility_id,
-                        'usage_date' => now(),
-                        'new_meter_reading' => $reading['reading'],
-                        'old_meter_reading' => 0,
-                        'amount_used' => 0
-                    ]);
-                }
             }
 
             DB::commit();
+
             return response()->json([
-                'property' => $property->load('rooms'),
-                'message' => 'Property with rooms created successfully'
+                'status' => 'success',
+                'message' => 'Property created successfully',
+                'data' => $property->load('rooms')
             ], 201);
+
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
-                'message' => 'Error creating property',
+                'status' => 'error',
+                'message' => 'Failed to create property',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -804,5 +736,293 @@ class PropertyController extends Controller
             ->get();
 
         return response()->json(['properties' => $properties], 200);
+    }
+
+    /**
+     * Get rental details and associated invoices
+     * Only allows access to the landlord who owns the property and the tenant of the rental
+     * 
+     * @param int $rentalId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getRentalInvoices($rentalId)
+    {
+        try {
+            // Get the authenticated user
+            $user = Auth::user();
+            
+            // First, check if the user exists and get their role
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+
+            // Find the rental with its relationships
+            $rental = Rental::with([
+                'room.property',
+                'tenant',
+                'invoices' => function($query) {
+                    $query->orderBy('created_at', 'desc');
+                },
+                'invoices.utilityUsages.utility',
+                'invoices.utilityUsages.utilityPrice'
+            ])->find($rentalId);
+
+            if (!$rental) {
+                return response()->json([
+                    'message' => 'Rental not found'
+                ], 404);
+            }
+
+            // Check authorization based on user role and ID
+            $userRole = $user->role->role_name; // Assuming role relationship exists
+            $isAuthorized = false;
+
+            if ($userRole === 'tenant') {
+                // If user is tenant, they can only view their own rentals
+                $isAuthorized = $user->user_id === $rental->tenant_id;
+            } elseif ($userRole === 'landlord') {
+                // If user is landlord, they can only view rentals of their properties
+                $isAuthorized = $user->user_id === $rental->room->property->landlord_id;
+            }
+
+            if (!$isAuthorized) {
+                return response()->json([
+                    'message' => 'You are not authorized to view this rental\'s invoices',
+                    'user_role' => $userRole,
+                    'user_id' => $user->user_id,
+                    'requested_rental' => [
+                        'tenant_id' => $rental->tenant_id,
+                        'landlord_id' => $rental->room->property->landlord_id
+                    ]
+                ], 403);
+            }
+
+            // Format the response
+            $formattedResponse = [
+                'rental_id' => $rental->rental_id,
+                'start_date' => $rental->start_date,
+                'end_date' => $rental->end_date,
+                'status' => $rental->end_date ? 'Ended' : 'Active',
+                'tenant' => [
+                    'tenant_id' => $rental->tenant->user_id,
+                    'name' => $rental->tenant->name,
+                    'email' => $rental->tenant->email,
+                    'phone' => $rental->tenant->phone
+                ],
+                'property' => [
+                    'property_id' => $rental->room->property->property_id,
+                    'property_name' => $rental->room->property->property_name,
+                    'address' => $rental->room->property->address,
+                    'landlord_id' => $rental->room->property->landlord_id
+                ],
+                'room' => [
+                    'room_id' => $rental->room->room_id,
+                    'room_name' => $rental->room->room_name,
+                    'room_type' => $rental->room->room_type,
+                    'rent_amount' => $rental->room->rent_amount
+                ],
+                'invoices' => $rental->invoices->map(function ($invoice) {
+                    return [
+                        'invoice_id' => $invoice->invoice_id,
+                        'invoice_date' => $invoice->invoice_date,
+                        'due_date' => $invoice->due_date,
+                        'total_amount' => $invoice->total_amount,
+                        'status' => $invoice->status,
+                        'utilities' => $invoice->utilityUsages->map(function ($usage) {
+                            return [
+                                'utility_name' => $usage->utility->utility_name,
+                                'amount_used' => $usage->amount_used,
+                                'price_per_unit' => $usage->utilityPrice->price,
+                                'total_cost' => $usage->amount_used * $usage->utilityPrice->price
+                            ];
+                        })
+                    ];
+                })
+            ];
+
+            // Add request metadata for debugging
+            $formattedResponse['request_metadata'] = [
+                'requester_id' => $user->user_id,
+                'requester_role' => $userRole,
+                'access_granted_as' => $userRole === 'tenant' ? 'tenant' : 'landlord'
+            ];
+
+            return response()->json($formattedResponse, 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error retrieving rental invoices',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all invoices related to the landlord's properties with optional date filtering
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getLandlordInvoices(Request $request)
+    {
+        try {
+            // Get the authenticated user
+            $user = Auth::user();
+            
+            // Check if user exists
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+
+            // Debug information
+            $debug = [
+                'user_id' => $user->user_id,
+                'auth_check' => Auth::check(),
+            ];
+
+            // Check if user is a landlord using the user_roles table
+            $userRole = DB::table('user_roles')
+                ->join('roles', 'user_roles.role_id', '=', 'roles.role_id')
+                ->where('user_roles.user_id', $user->user_id)
+                ->where('roles.role_name', 'landlord')
+                ->first();
+
+            $debug['role_check'] = $userRole ? true : false;
+
+            if (!$userRole) {
+                return response()->json([
+                    'message' => 'Only landlords can access this endpoint',
+                    'debug' => $debug
+                ], 403);
+            }
+
+            // Validate date filters if provided
+            $validator = Validator::make($request->all(), [
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'status' => 'nullable|string|in:pending,paid,overdue'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Invalid date range',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Start query with landlord's properties
+            $query = Invoice::whereHas('rental.room.property', function($query) use ($user) {
+                $query->where('landlord_id', $user->user_id);
+            })
+            ->with([
+                'rental.tenant',
+                'rental.room.property',
+                'utilityUsages.utility',
+                'utilityUsages.utilityPrice'
+            ]);
+
+            // Apply date filters if provided
+            if ($request->has('start_date')) {
+                $query->where('invoice_date', '>=', $request->start_date);
+            }
+            if ($request->has('end_date')) {
+                $query->where('invoice_date', '<=', $request->end_date);
+            }
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Get the results
+            $invoices = $query->orderBy('invoice_date', 'desc')->get();
+
+            // Format the response
+            $formattedInvoices = $invoices->map(function ($invoice) {
+                $formattedInvoice = [
+                    'invoice_id' => $invoice->invoice_id,
+                    'invoice_date' => $invoice->invoice_date,
+                    'due_date' => $invoice->due_date,
+                    'total_amount' => $invoice->total_amount,
+                    'status' => $invoice->status
+                ];
+
+                // Add property information if available
+                if ($invoice->rental && $invoice->rental->room && $invoice->rental->room->property) {
+                    $formattedInvoice['property'] = [
+                        'property_id' => $invoice->rental->room->property->property_id,
+                        'property_name' => $invoice->rental->room->property->property_name,
+                        'address' => $invoice->rental->room->property->address
+                    ];
+                }
+
+                // Add room information if available
+                if ($invoice->rental && $invoice->rental->room) {
+                    $formattedInvoice['room'] = [
+                        'room_id' => $invoice->rental->room->room_id,
+                        'room_name' => $invoice->rental->room->room_name,
+                        'room_type' => $invoice->rental->room->room_type
+                    ];
+                }
+
+                // Add tenant information if available
+                if ($invoice->rental && $invoice->rental->tenant) {
+                    $formattedInvoice['tenant'] = [
+                        'tenant_id' => $invoice->rental->tenant->user_id,
+                        'name' => $invoice->rental->tenant->name,
+                        'email' => $invoice->rental->tenant->email
+                    ];
+                }
+
+                // Add utilities if available
+                if ($invoice->utilityUsages) {
+                    $formattedInvoice['utilities'] = $invoice->utilityUsages->map(function ($usage) {
+                        return [
+                            'utility_name' => optional($usage->utility)->utility_name,
+                            'amount_used' => $usage->amount_used,
+                            'price_per_unit' => optional($usage->utilityPrice)->price,
+                            'total_cost' => $usage->amount_used * (optional($usage->utilityPrice)->price ?? 0)
+                        ];
+                    });
+                }
+
+                return $formattedInvoice;
+            });
+
+            // Add summary statistics
+            $summary = [
+                'total_invoices' => $invoices->count(),
+                'total_amount' => $invoices->sum('total_amount'),
+                'status_breakdown' => [
+                    'pending' => $invoices->where('status', 'pending')->count(),
+                    'paid' => $invoices->where('status', 'paid')->count(),
+                    'overdue' => $invoices->where('status', 'overdue')->count()
+                ],
+                'date_range' => [
+                    'start' => $request->start_date ?? $invoices->min('invoice_date'),
+                    'end' => $request->end_date ?? $invoices->max('invoice_date')
+                ]
+            ];
+
+            return response()->json([
+                'invoices' => $formattedInvoices,
+                'summary' => $summary,
+                'filters_applied' => [
+                    'start_date' => $request->start_date,
+                    'end_date' => $request->end_date,
+                    'status' => $request->status
+                ],
+                'debug' => $debug
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error retrieving landlord invoices',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'debug' => $debug ?? null
+            ], 500);
+        }
     }
 }

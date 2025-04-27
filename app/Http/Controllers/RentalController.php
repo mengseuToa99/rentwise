@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateRentalRequest;
 use App\Models\RentalDetail;
 use App\Services\RentalService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 class RentalController extends Controller
 {

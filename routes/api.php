@@ -75,14 +75,17 @@ Route::group(['prefix' => '/rentwise'], function () {
         Route::post('/utility-readings', [InvoiceController::class, 'inputUtilityReadings']);
         Route::get('/invoices/{invoiceId}', [InvoiceController::class, 'getInvoicesByTenant']);
         Route::get('/rentals/{rentalId}/invoices', [InvoiceController::class, 'getAllMonthlyInvoices']);
-        Route::get('/invoices-due/{invoiceId}', [InvoiceController::class, 'getDueUtilityReadings']);
+        Route::get('/invoices-due', [InvoiceController::class, 'getDueUtilityReadings']);
         
         Route::get('/inbox', [MessageController::class, 'inbox'])->name('inbox');
         Route::post('/message/{userId}', [MessageController::class, 'store'])->name('message.store');
         Route::get('/message/{userId}', [MessageController::class, 'show'])->name('message.show');
 
+        // Route::get('rentals/{rental}/invoices', [PropertyController::class, 'getRentalInvoices']);
 
-        
+        // Modified route for landlord invoices with optional date filtering
+        Route::get('landlord/invoices', [InvoiceController::class, 'getLandlordInvoices']);
+
     //     Route::get('/properties', 'PropertyController@index')
     // ->middleware('permission:view_property');
 

@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class InvoiceController extends Controller
 {
@@ -155,31 +156,153 @@ class InvoiceController extends Controller
     }
 
 
-    // In your controller
-    public function getDueUtilityReadings(Request $request)
+    /**
+     * Get rooms that need utility readings in the next 3-4 days for invoice preparation
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getDueUtilityReadings()
     {
-        $request->validate([
-            'property_id' => 'required|exists:property_detail,property_id',
-        ]);
+        try {
+            // Get authenticated user
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
 
-        // Check if we have cached due readings
-        $cachedReadings = DB::table('system_settings')
-            ->where('setting_name', 'due_utility_readings_' . $request->property_id)
-            ->first();
+            // Get current date and date range for checking
+            $today = Carbon::today();
+            $startDate = $today->copy()->addDays(3);
+            $endDate = $today->copy()->addDays(4);
 
-        if ($cachedReadings) {
+            // Get active rentals that need readings soon
+            $dueRooms = RentalDetail::with([
+                'room.property',
+                'tenant',
+                'room.utilityUsages' => function($query) {
+                    $query->latest('usage_date')
+                         ->take(1)
+                         ->with('utility');
+                },
+                'invoiceDetails' => function($query) {
+                    $query->latest('created_at')
+                         ->take(1); // Get the most recent invoice
+                }
+            ])
+            ->whereHas('room.property', function($query) use ($user) {
+                $query->where('landlord_id', $user->user_id);
+            })
+            ->whereNull('end_date') // Only active rentals
+            ->get();
+
+            // Filter rooms based on due dates
+            $filteredRooms = $dueRooms->filter(function($rental) use ($startDate, $endDate) {
+                // Get the next due date for this rental
+                $nextDueDate = Carbon::parse($rental->due_date);
+                
+                // If the due date has passed, calculate the next month's due date
+                while ($nextDueDate->isPast()) {
+                    $nextDueDate->addMonth();
+                }
+
+                // Check if the next due date falls within our target range
+                return $nextDueDate->between($startDate, $endDate);
+            });
+
+            // Format the response
+            $formattedResponse = $filteredRooms->map(function ($rental) {
+                // Get the latest invoice if it exists
+                $latestInvoice = $rental->invoiceDetails->first();
+
+                // Calculate next due date
+                $nextDueDate = Carbon::parse($rental->due_date);
+                while ($nextDueDate->isPast()) {
+                    $nextDueDate->addMonth();
+                }
+
+                return [
+                    'rental_id' => $rental->rental_id,
+                    'next_reading_date' => $nextDueDate->copy()->subDays(1)->format('Y-m-d'),
+                    'days_until_due' => Carbon::today()->diffInDays($nextDueDate),
+                    'property' => [
+                        'property_id' => $rental->room->property->property_id,
+                        'property_name' => $rental->room->property->property_name,
+                        'address' => $rental->room->property->address
+                    ],
+                    'room' => [
+                        'room_id' => $rental->room->room_id,
+                        'room_name' => $rental->room->room_name,
+                        'room_type' => $rental->room->room_type,
+                        'rent_amount' => number_format($rental->room->rent_amount, 2)
+                    ],
+                    'tenant' => [
+                        'tenant_id' => $rental->tenant->user_id,
+                        'name' => $rental->tenant->name,
+                        'email' => $rental->tenant->email,
+                        'phone' => $rental->tenant->phone
+                    ],
+                    'current_utility_readings' => collect($rental->room->utilityUsages)->map(function ($usage) {
+                        return [
+                            'utility_name' => $usage->utility->utility_name,
+                            'last_reading' => $usage->new_meter_reading,
+                            'last_reading_date' => $usage->usage_date,
+                            'utility_id' => $usage->utility_id
+                        ];
+                    })->values(),
+                    'latest_invoice' => $latestInvoice ? [
+                        'invoice_id' => $latestInvoice->invoice_id,
+                        'amount_due' => number_format($latestInvoice->amount_due, 2),
+                        'due_date' => $latestInvoice->due_date,
+                        'paid' => $latestInvoice->paid,
+                        'payment_method' => $latestInvoice->payment_method,
+                        'payment_status' => $latestInvoice->payment_status,
+                        'created_at' => $latestInvoice->created_at,
+                        'updated_at' => $latestInvoice->updated_at
+                    ] : null,
+                    'preparation_info' => [
+                        'suggested_reading_date' => $nextDueDate->copy()->subDays(1)->format('Y-m-d'),
+                        'invoice_month' => Carbon::today()->format('Y-m'),
+                        'next_due_date' => $nextDueDate->format('Y-m-d')
+                    ]
+                ];
+            });
+
+            // Add summary statistics
+            $summary = [
+                'total_rooms_due' => $filteredRooms->count(),
+                'total_with_pending_invoices' => $filteredRooms->filter(function($rental) {
+                    return $rental->invoiceDetails->first() && 
+                           $rental->invoiceDetails->first()->payment_status === 'pending';
+                })->count(),
+                'date_range' => [
+                    'start' => $startDate->format('Y-m-d'),
+                    'end' => $endDate->format('Y-m-d')
+                ],
+                'notification_message' => 'These rooms require utility readings soon for invoice generation.'
+            ];
+
             return response()->json([
-                'due_invoices' => json_decode($cachedReadings->setting_value)
+                'rooms_needing_readings' => $formattedResponse,
+                'summary' => $summary,
+                'current_date' => $today->format('Y-m-d'),
+                'debug_info' => [
+                    'start_date' => $startDate->format('Y-m-d'),
+                    'end_date' => $endDate->format('Y-m-d'),
+                    'total_rentals_before_filter' => $dueRooms->count(),
+                    'total_rentals_after_filter' => $filteredRooms->count()
+                ]
             ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to retrieve rooms needing readings',
+                'message' => $e->getMessage(),
+                'trace' => env('APP_DEBUG') ? $e->getTraceAsString() : null
+            ], 500);
         }
-
-        // If not in cache, calculate on the fly
-        $utilityService = app(UtilityService::class);
-        $dueRooms = $utilityService->getRoomsDueForUtilityCalculation($request->property_id);
-
-        return response()->json([
-            'due_invoices' => $dueRooms
-        ]);
     }
 
     /**
@@ -467,5 +590,171 @@ class InvoiceController extends Controller
             'invoice_reason' => $reason,
             'is_additional' => $invoiceType !== 'regular'
         ]);
+    }
+
+    /**
+     * Get all invoices for a landlord with optional date filtering
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getLandlordInvoices(Request $request)
+    {
+        try {
+            // Get the authenticated user
+            $user = Auth::user();
+            
+            // Check if user exists
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+
+            // Check if user is a landlord using the user_roles table
+            $isLandlord = DB::table('user_roles')
+                ->join('roles', 'user_roles.role_id', '=', 'roles.role_id')
+                ->where('user_roles.user_id', $user->user_id)
+                ->where('roles.role_name', 'landlord')
+                ->exists();
+
+            if (!$isLandlord) {
+                return response()->json([
+                    'message' => 'Only landlords can access this endpoint'
+                ], 403);
+            }
+
+            // Validate date filters if provided
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'status' => 'nullable|string|in:pending,paid,overdue'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Invalid date range',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Get all rentals managed by this landlord with their invoices
+            $query = InvoiceDetail::with(['rental.room.property', 'rental.tenant'])
+                ->whereHas('rental.room.property', function ($query) use ($user) {
+                    $query->where('landlord_id', $user->user_id);
+                });
+
+            // Apply date filters if provided
+            if ($request->has('start_date')) {
+                $query->where('due_date', '>=', $request->start_date);
+            }
+            if ($request->has('end_date')) {
+                $query->where('due_date', '<=', $request->end_date);
+            }
+            if ($request->has('status')) {
+                $query->where('payment_status', $request->status);
+            }
+
+            // Get the results ordered by due date
+            $invoices = $query->orderBy('due_date', 'desc')->get();
+
+            // Get utility usages for all relevant rooms
+            $roomIds = $invoices->pluck('rental.room_id')->unique();
+            $utilityUsages = UtilityUsage::with(['utility'])
+                ->whereIn('room_id', $roomIds)
+                ->get()
+                ->groupBy('room_id');
+
+            // Format the response
+            $formattedInvoices = $invoices->map(function ($invoice) use ($utilityUsages) {
+                $roomId = $invoice->rental->room_id;
+                $billingMonth = Carbon::parse($invoice->due_date)->subMonth()->format('Y-m');
+                
+                // Get utility usages for this room and billing month
+                $utilities = collect($utilityUsages->get($roomId, []))
+                    ->filter(function ($usage) use ($billingMonth) {
+                        return Carbon::parse($usage->usage_date)->format('Y-m') === $billingMonth;
+                    });
+
+                $utilityTotal = $utilities->sum('cost');
+                $rentAmount = $invoice->rental->room->rent_amount;
+                $otherCharges = $invoice->amount_due - $rentAmount - $utilityTotal;
+
+                return [
+                    'invoice_id' => $invoice->invoice_id,
+                    'invoice_date' => $invoice->created_at->format('Y-m-d'),
+                    'due_date' => $invoice->due_date,
+                    'billing_month' => $billingMonth,
+                    'property' => [
+                        'property_id' => $invoice->rental->room->property->property_id,
+                        'property_name' => $invoice->rental->room->property->property_name,
+                        'address' => $invoice->rental->room->property->address
+                    ],
+                    'room' => [
+                        'room_id' => $invoice->rental->room->room_id,
+                        'room_name' => $invoice->rental->room->room_name,
+                        'room_type' => $invoice->rental->room->room_type,
+                        'rent_amount' => $rentAmount
+                    ],
+                    'tenant' => [
+                        'tenant_id' => $invoice->rental->tenant->user_id,
+                        'name' => $invoice->rental->tenant->name,
+                        'email' => $invoice->rental->tenant->email
+                    ],
+                    'amount_breakdown' => [
+                        'rent' => number_format($rentAmount, 2),
+                        'utilities' => number_format($utilityTotal, 2),
+                        'other_charges' => number_format($otherCharges, 2),
+                        'total' => number_format($invoice->amount_due, 2)
+                    ],
+                    'utility_details' => $utilities->mapWithKeys(function ($usage) {
+                        return [$usage->utility->utility_name => [
+                            'old_reading' => $usage->old_meter_reading,
+                            'new_reading' => $usage->new_meter_reading,
+                            'consumption' => $usage->amount_used,
+                            'rate' => $usage->amount_used > 0
+                                ? number_format($usage->cost / $usage->amount_used, 2)
+                                : "0.00",
+                            'cost' => number_format($usage->cost, 2),
+                            'usage_date' => $usage->usage_date
+                        ]];
+                    })->toArray(),
+                    'payment_status' => $invoice->payment_status,
+                    'payment_method' => $invoice->payment_method
+                ];
+            });
+
+            // Add summary statistics
+            $summary = [
+                'total_invoices' => $invoices->count(),
+                'total_amount' => number_format($invoices->sum('amount_due'), 2),
+                'status_breakdown' => [
+                    'pending' => $invoices->where('payment_status', 'pending')->count(),
+                    'paid' => $invoices->where('payment_status', 'paid')->count(),
+                    'overdue' => $invoices->where('payment_status', 'overdue')->count()
+                ],
+                'date_range' => [
+                    'start' => $request->start_date ?? $invoices->min('due_date'),
+                    'end' => $request->end_date ?? $invoices->max('due_date')
+                ]
+            ];
+
+            return response()->json([
+                'invoices' => $formattedInvoices,
+                'summary' => $summary,
+                'filters_applied' => [
+                    'start_date' => $request->start_date,
+                    'end_date' => $request->end_date,
+                    'status' => $request->status
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error retrieving landlord invoices',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
     }
 }
