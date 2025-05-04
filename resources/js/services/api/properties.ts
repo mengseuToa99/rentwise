@@ -16,10 +16,13 @@ export const propertyService = {
   },
 
   getProperties: async (landlordId: number) => {
-    const response = await api.get(`/rentwise/landlords/${landlordId}/properties`);
+    console.log('Fetching properties for landlord ID:', landlordId);
+    // Using the correct endpoint without landlordId in the path
+    const response = await api.get(`/rentwise/landlords/properties`);
+    console.log('API response:', response.data);
     return response.data;
   },
-
+  
   deleteProperty: async (propertyId: number) => {
     const response = await api.delete(`/rentwise/properties/${propertyId}`);
     return response.data;

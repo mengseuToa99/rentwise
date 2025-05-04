@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import RootLayout from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, ChevronsUpDown, MoreVertical, Calendar } from "lucide-react";
+import { MapPin, ChevronsUpDown, MoreVertical, Calendar, Plus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
   Collapsible,
@@ -91,12 +91,13 @@ const PropertyManagement: React.FC = () => {
       } else if (response?.properties) {
         setProperties(response.properties);
       } else {
-        throw new Error("Unexpected response format");
+        // Instead of throwing an error, set properties to empty array
+        setProperties([]);
       }
     } catch (error: any) {
       console.error("Error fetching properties:", error);
-      setError(error.message);
-      toast.error("Failed to fetch properties: " + error.message);
+      // Don't set the error, just set properties to empty array
+      setProperties([]);
     } finally {
       setLoading(false);
     }
@@ -315,31 +316,9 @@ const PropertyManagement: React.FC = () => {
     }
   };
 
-  if (loading) {
+  // Render main content including header and action buttons
+  const renderMainContent = () => {
     return (
-      <RootLayout>
-        <div className="p-8">
-          <p>Loading properties...</p>
-        </div>
-      </RootLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <RootLayout>
-        <div className="p-8">
-          <p className="text-red-500">Error loading properties: {error}</p>
-          <Button onClick={fetchProperties} className="mt-4">
-            Retry
-          </Button>
-        </div>
-      </RootLayout>
-    );
-  }
-
-  return (
-    <RootLayout>
       <div className="p-8">
         <h1 className="text-3xl font-bold mb-6">Property Management</h1>
 
@@ -350,143 +329,172 @@ const PropertyManagement: React.FC = () => {
           </a>
         </div>
 
-        <div className="space-y-8">
-          {properties.map((property) => {
-            const availableRooms = property.rooms?.filter((room) => room.available) || [];
-            const propertyStatus = availableRooms.length > 0 ? "Vacant" : "Occupied";
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+              <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
+            </div>
+            <p className="mt-4 text-gray-500">Loading your properties...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 border rounded-lg bg-gray-50 dark:bg-gray-800">
+            <h3 className="text-lg font-semibold mb-4">Property not found</h3>
+            <a href={`${window.location.pathname}/${addPropertyUrl}`}>
+              <Button className="inline-flex items-center mt-2">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Property
+              </Button>
+            </a>
+          </div>
+        ) : properties.length === 0 ? (
+          <div className="text-center py-12 border rounded-lg bg-gray-50 dark:bg-gray-800">
+            <h3 className="text-xl font-medium mb-2">Property not found</h3>
+            <a href={`${window.location.pathname}/${addPropertyUrl}`}>
+              <Button className="inline-flex items-center mt-4">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Property
+              </Button>
+            </a>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {properties.map((property) => {
+              const availableRooms = property.rooms?.filter((room) => room.available) || [];
+              const propertyStatus = availableRooms.length > 0 ? "Vacant" : "Occupied";
 
-            return (
-              <Card key={property.property_id} className="border p-6 rounded-lg shadow-sm dark:border-gray-700">
-                <CardHeader className="flex flex-col md:flex-row justify-between items-start">
-                  <div className="mb-4 md:mb-0">
-                    <CardTitle className="text-lg font-semibold dark:text-white">
-                      {property.property_name}
-                    </CardTitle>
-                    <CardDescription className="flex items-center text-gray-500 dark:text-gray-400">
-                      <MapPin size={16} className="mr-1" />
-                      {property.address}, {property.location}
-                    </CardDescription>
-                  </div>
-                  <div>
-                    <span className="text-xs font-medium px-2 py-1 rounded bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300">
-                      {propertyStatus}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                    {property.description}
-                  </p>
-
-                  <div className="flex justify-end mb-4">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={`${window.location.pathname}/editProperty/${property.property_id}`}
-                            className="w-full cursor-pointer"
-                          >
-                            Edit Property
-                          </a>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onSelect={() => handleDeleteProperty(property.property_id)}
-                        >
-                          Delete Property
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  <Collapsible>
-                    <div className="flex items-center justify-between">
-                      <Separator className="flex-1 dark:bg-gray-700" />
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="ml-4">
-                          <ChevronsUpDown className="h-4 w-4 transition-transform duration-200 [data-state=open]:rotate-180" />
-                        </Button>
-                      </CollapsibleTrigger>
+              return (
+                <Card key={property.property_id} className="border p-6 rounded-lg shadow-sm dark:border-gray-700">
+                  <CardHeader className="flex flex-col md:flex-row justify-between items-start">
+                    <div className="mb-4 md:mb-0">
+                      <CardTitle className="text-lg font-semibold dark:text-white">
+                        {property.property_name}
+                      </CardTitle>
+                      <CardDescription className="flex items-center text-gray-500 dark:text-gray-400">
+                        <MapPin size={16} className="mr-1" />
+                        {property.address}, {property.location}
+                      </CardDescription>
                     </div>
-                    <CollapsibleContent>
-                      <div className="mt-4 ml-12 space-y-4">
-                        {(property.rooms || []).map((unit: Room) => (
-                          <div
-                            key={unit.room_id}
-                            className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-start"
+                    <div>
+                      <span className="text-xs font-medium px-2 py-1 rounded bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300">
+                        {propertyStatus}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                      {property.description}
+                    </p>
+
+                    <div className="flex justify-end mb-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem asChild>
+                            <a
+                              href={`${window.location.pathname}/editProperty/${property.property_id}`}
+                              className="w-full cursor-pointer"
+                            >
+                              Edit Property
+                            </a>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onSelect={() => handleDeleteProperty(property.property_id)}
                           >
-                            <div>
-                              <p className="text-sm font-medium dark:text-white">
-                                Room #{unit.room_number}
-                              </p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Price: ${unit.rent_amount}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {unit.description}
-                              </p>
-                            </div>
-                            <div className="mt-4 md:mt-0 flex flex-col items-end">
-                              <span
-                                className={`text-xs font-medium px-2 py-1 rounded ${
-                                  unit.available
-                                    ? "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300"
-                                    : "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
-                                }`}
-                              >
-                                {unit.available ? "Vacant" : "Occupied"}
-                              </span>
-                              
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="mt-2">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                  <DropdownMenuItem asChild>
-                                    <a
-                                       href={`${window.location.pathname}/editUnit/${property.property_id}/${unit.room_id}`}
-                                      className="w-full cursor-pointer"
-                                    >
-                                      Edit Unit
-                                    </a>
-                                  </DropdownMenuItem>
-                                  {unit.available === 1 ? (
-                                    <DropdownMenuItem
-                                      onSelect={() => handleOpenAssignTenant(property.property_id, unit.room_id)}
-                                    >
-                                      Assign Tenant
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <DropdownMenuItem
-                                      onSelect={() => handleOpenAssignTenant(property.property_id, unit.room_id)}
-                                    >
-                                      Update Tenant Info
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem
-                                    onSelect={() => handleDeleteUnit(property.property_id, unit.room_id)}
-                                  >
-                                    Delete Unit
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-                        ))}
+                            Delete Property
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <Collapsible>
+                      <div className="flex items-center justify-between">
+                        <Separator className="flex-1 dark:bg-gray-700" />
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" className="ml-4">
+                            <ChevronsUpDown className="h-4 w-4 transition-transform duration-200 [data-state=open]:rotate-180" />
+                          </Button>
+                        </CollapsibleTrigger>
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                      <CollapsibleContent>
+                        <div className="mt-4 ml-12 space-y-4">
+                          {(property.rooms || []).map((unit: Room) => (
+                            <div
+                              key={unit.room_id}
+                              className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-start"
+                            >
+                              <div>
+                                <p className="text-sm font-medium dark:text-white">
+                                  Room #{unit.room_number}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  Price: ${unit.rent_amount}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  {unit.description}
+                                </p>
+                              </div>
+                              <div className="mt-4 md:mt-0 flex flex-col items-end">
+                                <span
+                                  className={`text-xs font-medium px-2 py-1 rounded ${
+                                    unit.available
+                                      ? "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300"
+                                      : "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
+                                  }`}
+                                >
+                                  {unit.available ? "Vacant" : "Occupied"}
+                                </span>
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="mt-2">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent>
+                                    <DropdownMenuItem asChild>
+                                      <a
+                                        href={`${window.location.pathname}/editUnit/${property.property_id}/${unit.room_id}`}
+                                        className="w-full cursor-pointer"
+                                      >
+                                        Edit Unit
+                                      </a>
+                                    </DropdownMenuItem>
+                                    {unit.available === 1 ? (
+                                      <DropdownMenuItem
+                                        onSelect={() => handleOpenAssignTenant(property.property_id, unit.room_id)}
+                                      >
+                                        Assign Tenant
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        onSelect={() => handleOpenAssignTenant(property.property_id, unit.room_id)}
+                                      >
+                                        Update Tenant Info
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                      onSelect={() => handleDeleteUnit(property.property_id, unit.room_id)}
+                                    >
+                                      Delete Unit
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
         
         {/* Tenant Assignment Dialog */}
         <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
@@ -610,6 +618,13 @@ const PropertyManagement: React.FC = () => {
           </DialogContent>
         </Dialog>
       </div>
+    );
+  };
+
+  // Main render return
+  return (
+    <RootLayout>
+      {renderMainContent()}
     </RootLayout>
   );
 };
