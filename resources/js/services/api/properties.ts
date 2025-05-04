@@ -16,7 +16,7 @@ export const propertyService = {
   },
 
   getProperties: async (landlordId: number) => {
-    const response = await api.get(`/rentwise/landlords/properties`);
+    const response = await api.get(`/rentwise/landlords/${landlordId}/properties`);
     return response.data;
   },
 

@@ -7,18 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Invoice;
 use App\Models\RoomDetail;
 use App\Models\User;
+use App\Models\Property;
+use App\Models\UserDetail;
 
 class Rental extends Model
 {
     use HasFactory;
 
+    protected $table = 'rental_detail';
     protected $primaryKey = 'rental_id';
+    public $timestamps = true;
+
     protected $fillable = [
-        'tenant_id',
         'room_id',
+        'tenant_id',
         'start_date',
         'end_date',
-        'status'
+        'monthly_rent',
+        'status',
+        'created_at',
+        'updated_at'
     ];
 
     /**
@@ -34,7 +42,7 @@ class Rental extends Model
      */
     public function tenant()
     {
-        return $this->belongsTo(User::class, 'tenant_id', 'user_id');
+        return $this->belongsTo(UserDetail::class, 'tenant_id', 'user_id');
     }
 
     /**
@@ -43,5 +51,17 @@ class Rental extends Model
     public function invoices()
     {
         return $this->hasMany(Invoice::class, 'rental_id', 'rental_id');
+    }
+
+    public function property()
+    {
+        return $this->hasOneThrough(
+            Property::class,
+            RoomDetail::class,
+            'room_id', // Foreign key on room_detail table
+            'property_id', // Foreign key on property_detail table
+            'room_id', // Local key on rental_detail table
+            'property_id' // Local key on room_detail table
+        );
     }
 } 

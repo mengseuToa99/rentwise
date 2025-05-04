@@ -11,6 +11,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\Mime\MessageConverter;
 
@@ -92,7 +93,8 @@ Route::group(['prefix' => '/rentwise'], function () {
     // Route::get('/system/settings', 'SystemController@settings')
     // ->middleware('Rental Management');http://localhost:8000/api/rentwise/inbox
 
-    
+        // Dashboard route
+        Route::get('/dashboard/stats', [DashboardController::class, 'getDashboardStats']);
     });
 }); 
 

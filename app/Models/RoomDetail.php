@@ -62,7 +62,7 @@ class RoomDetail extends Model
             Carbon::parse($this->due_date)->isPast();
     }
 
-    public function utilityUsages()
+    public function utilityUsage()
     {
         return $this->hasMany(UtilityUsage::class, 'room_id', 'room_id');
     }

@@ -2,8 +2,14 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner"
+import { ReactNode } from "react";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+interface RootLayoutProps {
+    children: ReactNode;
+    sidebar?: ReactNode;
+}
+
+export default function RootLayout({ children, sidebar }: RootLayoutProps) {
     return (
         <ThemeProvider
             attribute="class"
@@ -13,7 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         >
             <SidebarProvider>
                 <div className="flex min-h-screen w-full">
-                    <AppSidebar />
+                    {sidebar || <AppSidebar />}
                     <main className="flex-1 p-6">
                         <SidebarTrigger />
                         {children}

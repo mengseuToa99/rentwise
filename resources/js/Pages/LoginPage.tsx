@@ -50,16 +50,29 @@ const LoginPage: React.FC = () => {
             // Store the token in localStorage
             localStorage.setItem("token", response.data.token);
             
-            // Store user data if needed
-            localStorage.setItem("user", JSON.stringify(response.data.user));
+            // Store user data with roles
+            const userData = {
+                ...response.data.user,
+                roles: response.data.user.roles // Make sure roles array is included
+            };
+            localStorage.setItem("user", JSON.stringify(userData));
             
             // Show success message
             toast("User login successfully!", {
                 description: "welcome back!",
             });
 
-            // Redirect to dashboard or home page
-            navigate("/");
+            // Redirect based on user role
+            const userRole = response.data.user.roles[0].toLowerCase();
+            console.log("User role after login:", userRole); // Debug log
+            
+            if (userRole === 'admin') {
+                navigate("/admin/dashboard");
+            } else if (userRole === 'landlord') {
+                navigate("/property");
+            } else {
+                navigate("/");
+            }
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || "Login failed";
             toast(errorMessage, {
